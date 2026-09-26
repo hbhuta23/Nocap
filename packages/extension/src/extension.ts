@@ -40,8 +40,8 @@ export async function activate(context: vscode.ExtensionContext) {
       disableShims(context);
       vscode.window.showInformationMessage('nocap is off for this workspace.');
     }),
-    vscode.commands.registerCommand('nocap.setTask', async () => {
-      const task = await vscode.window.showInputBox({ prompt: 'What are you asking the agent to do?' });
+    vscode.commands.registerCommand('nocap.setTask', async (providedTask?: string) => {
+      const task = providedTask ?? await vscode.window.showInputBox({ prompt: 'What are you asking the agent to do?' });
       // TODO: shims use session "term-<pid>"; decide how panel tasks map to terminal sessions.
       if (task) await daemon.post('/v1/task', { session_id: 'panel', task, source: 'panel' });
     }),
