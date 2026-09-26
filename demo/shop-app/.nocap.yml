@@ -1,0 +1,18 @@
+# nocap rules for the demo shop (BRD §6.6)
+version: 1
+database:
+  url_env: DATABASE_URL
+  protected_tables: [payments]
+  sensitive_rows:
+    - table: users
+      where: "role = 'admin'"
+  redact_columns: [email, name, password_hash]
+human_check: risky # risky | blocked_only | off
+budget:
+  per_command_usd: 5
+  per_session_usd: 20
+tests:
+  globs: ["**/*.test.*", "**/*.spec.*", "**/test_*.py", "tests/**"]
+# Team rules: plain-English standards no agent action may break
+rules:
+  - Never touch the payments table

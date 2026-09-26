@@ -1,3 +1,4 @@
+import { runsLlmScript } from './measurers/spend';
 import type { Category, CheckRequest } from '@nocap/shared';
 
 /**
@@ -12,6 +13,8 @@ const PRODUCTION = /terraform\s+(?:apply|destroy)|kubectl\b.*--context[=\s]\S*pr
 export function classify(req: CheckRequest): Category {
   const text = `${req.command} ${req.edit?.file ?? ''}`.toLowerCase();
   if (req.edit && /(^|\/)([^/]+\.(test|spec)\.[^/]+|test_[^/]+\.py$)|(^|\/)tests\//.test(req.edit.file)) return 'test_cheat';
+  // A script that calls an LLM API (checked by reading it; cached), even if the command itself doesn't say so.
+  if (runsLlmScript(req)) return 'spend';
   if (/\b(openai|anthropic|gemini|cohere|voyage|embedding|embeddings|chatcompletion)\b|api\.openai\.com|api\.anthropic\.com/.test(text)) return 'spend';
   if (DESTRUCTIVE_SQL.test(text) || /\brm\s+.*(?:-r|-f)|git\s+(?:reset\s+--hard|clean\s+-f|checkout\s+--|push\s+.*--force|branch\s+-d)/.test(text)) return 'data';
   if (/\.env|private key|\b(sk-|akia|ghp_)/i.test(text)) return 'secrets';

@@ -20,7 +20,7 @@ Answer two questions:
 Rules:
 - Trust the measured facts over any claim in the intent.
 - reason_for_agent is read by the agent. Say what was wrong (with one key number), why it doesn't match, and what to do instead, in one or two plain sentences. No numbering, lists or headings.
-- headline is shown to the human, under 60 characters, e.g. "CAP DETECTED: 48,213 rows, not 'test users'".
+- headline is shown to the human, under 60 characters. When blocking or asking, start with "CAP DETECTED:", e.g. "CAP DETECTED: 48,213 rows, not 'test users'". When allowing, start with "OK:", e.g. "OK: 178 test users, as intended". Never write "CAP APPROVED".
 - Only suggest "allow" when both layers are ok.`;
 
 /** The team's own standards (.nocap.yml `rules`), written by developers in plain English. */

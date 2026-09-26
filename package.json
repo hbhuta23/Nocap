@@ -16,7 +16,7 @@
     "eval": "npm run eval -w @nocap/judge",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "demo:reset": "docker compose down -v && docker compose up -d postgres",
+    "demo:reset": "docker compose down -v && docker compose up -d postgres && git checkout -- demo/shop-app && git clean -fdq demo/shop-app",
     "test:db": "npm run test:db -w @nocap/daemon"
   },
   "engines": {

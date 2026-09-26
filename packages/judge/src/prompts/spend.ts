@@ -33,6 +33,8 @@ export interface SpendExtraction {
   };
   /** Which field of each item is sent to the API (for token sampling, FR-S3), e.g. "body". */
   text_field: string | null;
+  /** Every API call made for ONE loop item, each with its own model (e.g. a chat summary + an embedding). */
+  per_item_calls: { model: string | null; kind: 'chat' | 'embedding' | 'other'; max_output_tokens: number | null }[];
 }
 
 export const SPEND_EXTRACTION_SCHEMA = {
@@ -53,8 +55,20 @@ export const SPEND_EXTRACTION_SCHEMA = {
       required: ['kind', 'query', 'path', 'count'],
     },
     text_field: { type: Type.STRING, nullable: true },
+    per_item_calls: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          model: { type: Type.STRING, nullable: true },
+          kind: { type: Type.STRING, enum: ['chat', 'embedding', 'other'] },
+          max_output_tokens: { type: Type.NUMBER, nullable: true },
+        },
+        required: ['model', 'kind', 'max_output_tokens'],
+      },
+    },
   },
-  required: ['provider', 'model', 'calls_per_item', 'max_output_tokens', 'loop_source', 'text_field'],
+  required: ['provider', 'model', 'calls_per_item', 'max_output_tokens', 'loop_source', 'text_field', 'per_item_calls'],
 };
 
 export function buildSpendExtractionPrompt(script: string, fileName: string): string {
@@ -68,6 +82,9 @@ Do NOT estimate cost. Only extract structure. Rules:
   - "list" / "range": a literal list or range(n). Put the length or n in "count".
   - "unknown": anything else (API pagination, env-dependent, computed). Never guess a count.
 - text_field: the field or column of each item that is sent to the API, if visible.
+- per_item_calls: one entry per API call made for each loop item, in order, with its own model string, kind
+  ("chat" for text generation, "embedding" for embeddings) and max output tokens (null if not set). A chat call
+  followed by an embedding call is two entries. calls_per_item must equal the number of entries.
 
 FILE: ${fileName}
 \`\`\`

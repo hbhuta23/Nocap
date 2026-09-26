@@ -9,6 +9,7 @@ import { holdForHuman } from './humanCheck';
 import { measurers } from './measurers';
 import { applyPolicy } from './policy';
 import { rulesMentioned } from './rules';
+import { noteEdit } from './measurers/testDiff';
 import { sessions } from './sessions';
 
 const judge = new GeminiJudge();
@@ -21,6 +22,7 @@ export async function runCheck(req: CheckRequest): Promise<VerdictResponse> {
   const config = loadConfig(req.cwd);
   const task = sessions.getTask(req.session_id) ?? sessions.getTaskForWorkspace(req.cwd) ?? sessions.getTask('panel');
   const rules = config.rules ?? [];
+  noteEdit(req, config.tests?.globs); // FR-T4: remember which source files this session changed
   let response: VerdictResponse = { check_id, verdict: 'allow', category: classified, headline: 'Allowed', facts: [], layers: { task_fit: { ok: true, why: 'Safe command; no deep check needed.' }, intent_effect: { ok: true, why: 'No risky effect detected.' } }, reason_for_agent: '', mode: 'rules_only', latency_ms: 0 };
 
   // Safe actions skip the judge (FR-G1) unless they mention something a team rule is about.

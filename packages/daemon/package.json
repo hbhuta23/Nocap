@@ -5,7 +5,7 @@
   "main": "src/server.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "tsx --test test/adapters.test.ts test/rules.test.ts",
+    "test": "tsx --test test/adapters.test.ts test/rules.test.ts test/measurers.test.ts",
     "test:db": "tsx --test test/sql.db.test.ts"
   },
   "devDependencies": {
