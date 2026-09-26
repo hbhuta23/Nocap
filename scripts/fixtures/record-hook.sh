@@ -1,18 +1,26 @@
 #!/bin/sh
 # A0.2 hook recorder. Saves the raw hook JSON an agent sends, makes NO decision, exits 0.
-# Usage (wired up by setup.sh): record-hook.sh <agent> <event>
+# Usage (wired up by setup.sh): record-hook.sh <agent> <event> [label]
+#   label: where the hook was configured (e.g. "workspace" / "global"), added to the file name.
 #   NOCAP_RECORD_SLEEP=90  → sleep before returning, to test whether long hooks are allowed (we need 300 s).
 
 AGENT="$1"
 EVENT="$2"
+LABEL="$3"
+PAYLOAD=$(cat)
+
+# Antigravity's global hooks run for every project on the machine: only record the sandbox.
+if [ "$AGENT" = "antigravity" ] && ! printf '%s' "$PAYLOAD" | grep -q 'nocap-sandbox'; then exit 0; fi
+
 OUT_DIR="$(cd "$(dirname "$0")/../.." && pwd)/fixtures/hooks/$AGENT"
 mkdir -p "$OUT_DIR"
 
-PAYLOAD=$(cat)
+# Tool name: Claude/Codex/Gemini send "tool_name"; Antigravity sends "toolCall": {"name": ...}.
 TOOL=$(printf '%s' "$PAYLOAD" | grep -o '"tool_name" *: *"[^"]*"' | head -n 1 | sed 's/.*"\([^"]*\)"$/\1/')
+[ -z "$TOOL" ] && TOOL=$(printf '%s' "$PAYLOAD" | tr -d '\n' | grep -o '"toolCall" *: *{ *"name" *: *"[^"]*"' | head -n 1 | sed 's/.*"\([^"]*\)"$/\1/')
 MODE=$(printf '%s' "$PAYLOAD" | grep -o '"permission_mode" *: *"[^"]*"' | head -n 1 | sed 's/.*"\([^"]*\)"$/\1/')
 STAMP=$(date +%Y%m%d-%H%M%S)-$$
-BASE="$OUT_DIR/$EVENT${TOOL:+-$TOOL}-$STAMP"
+BASE="$OUT_DIR/$EVENT${TOOL:+-$TOOL}${LABEL:+-$LABEL}-$STAMP"
 
 printf '%s\n' "$PAYLOAD" > "$BASE.json"
 

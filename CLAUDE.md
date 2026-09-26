@@ -39,6 +39,16 @@ script is `nocap-hook.sh <agent> <event>`. The installer writes Codex/Gemini hoo
 is on the machine. **Claude Code is verified against real payloads; Codex and Gemini are built from
 their docs and still need real payloads recorded into `fixtures/hooks/<agent>/` (scripts/fixtures/setup.sh).**
 
+**Antigravity CLI (`agy`, Google's successor to Gemini CLI; adapter `antigravity.ts`)**, learned on 1.2.11:
+config is `<workspace>/.agents/hooks.json` as named groups (nocap owns `"nocap"`) of **flat** entries
+`{matcher, type, command, timeout}` (the docs' nested `hooks: [...]` is rejected: "command hook must specify
+'command'"); tool hooks need a `matcher` or they never fire. Tools: `run_command` (`CommandLine`, `Cwd`,
+`toolAction` = intent), `replace_file_content` (`TargetFile`, `TargetContent`, `ReplacementContent`),
+`multi_replace_file_content`, `write_to_file` (`TargetFile`, `CodeContent`). `PreInvocation` carries no prompt:
+read the last `<USER_REQUEST>` from the transcript file. Output `{decision: deny|ask|allow, reason}`.
+Parse check without running an agent: `cd <workspace> && agy agents`, then grep `hooks` in `~/.gemini/antigravity-cli/cli.log`.
+Workspace hooks load in 1.2.11 (the "workspace hooks ignored" bug was on 1.2.4).
+
 No double checks: an agent's shell commands hit its hook AND the shims. Shims skip when `CLAUDECODE`
 is set, and for any agent the daemon remembers commands a hook let through for 60 s
 (`adapters/recent.ts`), so the shim answers `allow` without a second check or pop-up.

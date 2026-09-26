@@ -1,0 +1,21 @@
+{
+  "_note": "Constructed: toolCall copied verbatim from a real Antigravity 1.2.11 transcript (transcript-sample.jsonl); wrapper fields per antigravity.google/docs/hooks. Replace with a raw recording when available.",
+  "toolCall": {
+    "name": "write_to_file",
+    "args": {
+      "CodeContent": "hello\n",
+      "Description": "Create src/notes.md with hello",
+      "Overwrite": false,
+      "TargetFile": "/Users/hetanshbhuta/nocap-sandbox/src/notes.md",
+      "toolAction": "Creating notes file",
+      "toolSummary": "Create notes.md"
+    }
+  },
+  "stepIdx": 1,
+  "conversationId": "651f206a-e1ed-42c4-8e5b-99eb61462463",
+  "workspacePaths": [
+    "/Users/hetanshbhuta/nocap-sandbox"
+  ],
+  "transcriptPath": "~/.gemini/antigravity-cli/brain/651f206a-e1ed-42c4-8e5b-99eb61462463/.system_generated/logs/transcript_full.jsonl",
+  "modelName": "gemini-3.8-flash-high"
+}

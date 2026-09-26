@@ -8,6 +8,7 @@ import type { VerdictResponse } from '@nocap/shared';
 import { toCheckRequest, toHookOutput } from '../src/adapters/claude';
 import { toCodexCheckRequest } from '../src/adapters/codex';
 import { toGeminiCheckRequest, toGeminiOutput } from '../src/adapters/gemini';
+import { latestPrompt, toAntigravityCheckRequest, toAntigravityOutput } from '../src/adapters/antigravity';
 import { patchEdits, pickEdit } from '../src/adapters/edits';
 import { checkedByHook, rememberHookCheck } from '../src/adapters/recent';
 import { isFollowUp } from '../src/sessions';
@@ -116,6 +117,43 @@ test('gemini output: {} to allow, {decision:"deny", reason} to block', () => {
   assert.deepEqual(toGeminiOutput(verdict({ verdict: 'allow' })), {});
   assert.equal((toGeminiOutput(verdict({ verdict: 'allow', human_confirmed: true })) as any).decision, 'allow');
   assert.deepEqual(toGeminiOutput(verdict({ verdict: 'block' })), { decision: 'deny', reason: 'Blocked by nocap: this deletes 48,213 users.' });
+});
+
+// ---------- Antigravity (tool args verbatim from a real 1.2.11 transcript) ----------
+
+const AG = join(__dirname, '../../../fixtures/hooks/antigravity');
+const agFixture = (name: string) => JSON.parse(readFileSync(join(AG, name), 'utf8'));
+
+test('antigravity: run_command → bash check, toolAction as intent, conversationId as session', () => {
+  const p = agFixture('PreToolUse-run_command-constructed.json');
+  const c = toAntigravityCheckRequest(p)!;
+  assert.deepEqual([c.agent, c.source, c.tool, c.command, c.intent, c.cwd], ['antigravity', 'antigravity_hook', 'bash', 'ls -la src', 'Listing src directory', '/Users/hetanshbhuta/nocap-sandbox']);
+  assert.equal(c.session_id, p.conversationId);
+});
+
+test('antigravity: replace_file_content on a test file → edit check (the test-cheat demo shape)', () => {
+  const c = toAntigravityCheckRequest(agFixture('PreToolUse-replace_file_content-constructed.json'))!;
+  assert.equal(c.tool, 'edit');
+  assert.match(c.edit!.file, /src\/cart\.test\.ts$/);
+  assert.match(c.edit!.new, /toBe\(80\)/);
+});
+
+test('antigravity: write_to_file → write check; unguarded tools get no decision', () => {
+  const c = toAntigravityCheckRequest(agFixture('PreToolUse-write_to_file-constructed.json'))!;
+  assert.deepEqual([c.tool, c.edit!.new], ['write', 'hello\n']);
+  assert.equal(toAntigravityCheckRequest({ conversationId: 'c', toolCall: { name: 'view_file', args: {} } }), null);
+});
+
+test('antigravity: the latest prompt is read from the transcript (PreInvocation carries none)', () => {
+  assert.equal(latestPrompt(join(AG, 'transcript-sample.jsonl')), 'create a file src/notes.md that says hello. This gets us a new-file payload.');
+  assert.equal(latestPrompt('/does/not/exist.jsonl'), null);
+});
+
+test('antigravity output: {} to allow, {decision, reason} to block or ask', () => {
+  assert.deepEqual(toAntigravityOutput(verdict({ verdict: 'allow' })), {});
+  assert.deepEqual(toAntigravityOutput(verdict({ verdict: 'block' })), { decision: 'deny', reason: 'Blocked by nocap: this deletes 48,213 users.' });
+  assert.equal((toAntigravityOutput(verdict({ verdict: 'ask' })) as any).decision, 'ask');
+  assert.equal((toAntigravityOutput(verdict({ verdict: 'allow', human_confirmed: true })) as any).decision, 'allow');
 });
 
 // ---------- No double checks: hook + shim ----------
