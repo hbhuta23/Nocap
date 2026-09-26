@@ -92,7 +92,9 @@ npm run build               # esbuild: extension + daemon + shims → packages/e
 npm run package             # build + .vsix
 npm run eval                # judge eval: 30 cases + spend extractor, score and latency (needs GEMINI_API_KEY)
 npm test                    # unit tests: adapters (real Claude fixtures), redaction, task tracking
-npm run db:up / db:down     # Postgres 16 in Docker
+npm run db:up / db:down     # demo Postgres 16 in Docker, host port 5433, seeded from demo/seed
+npm run demo:reset          # wipe and reseed the demo database (~2.5 s)
+npm run test:db             # SQL dry-run tests against the demo database
 scripts/fixtures/setup.sh   # A0.2: sandbox that records real hook payloads from all agents
 ```
 
@@ -166,11 +168,16 @@ Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so 
 ## Status (update as things land)
 
 - Role B v1 (merged 2026-09-26): pipeline, classifier, policy, config loader, human-check flow, local `.nocap.audit.jsonl`.
-  **Measurers are placeholders:** row counts, cascades and spend are hard-coded by regex (e.g. `@test.local` → 178,
-  else 48,213). The real Postgres dry run (B6–B8), spend math (B10), and MongoDB (B15) are still to do.
-  The data measurer's `judgeContext` should follow the field list in `judge/src/prompts/data.ts`; the
-  test-diff measurer should include the diff and `source_files_changed_this_session` (B11); the spend
-  measurer should call `judge.extractSpend(script)` (FR-S1) and compute dollars itself.
+- **Real SQL dry run (B6–B8) and demo database (B21), built by Role A 2026-09-26:** `daemon/src/measurers/sql.ts`
+  runs `psql -c` statements in BEGIN … ROLLBACK (3 s statement / 1 s lock timeout), captures affected rows in a
+  temp table, counts FK cascades via `pg_stat_xact_user_tables`, sensitive rows, protected tables, email-domain
+  breakdown and a sample. Demo: broad delete → 48,213 rows, 3 admins, orders (1,204) + sessions (5,310) in ~0.4 s;
+  narrow → 178. `npm run test:db` (7 tests incl. 100 dry runs leave data unchanged). Seed: `demo/seed/*.sql`,
+  deterministic; Postgres on host port **5433** (5432 is often a local Postgres). `npm run demo:reset` ≈ 2.5 s.
+  The FK indexes in the schema matter: without them the cascade exceeds the 3 s timeout.
+- Still placeholders (Role B): spend (B10: call `judge.extractSpend(script)`, count items, prices.json), test-diff
+  facts (B11: include the diff and `source_files_changed_this_session`), MongoDB (B15), the real panel (B17–B20).
+  Anvit's regex `data` measurer now only handles `rm` and non-psql SQL.
 - Role A (2026-09-26): judge + prompts for data, spend (incl. FR-S1 extractor), test-cheat and human answers;
   eval 30/30 + extractor 3/3; redaction of `.nocap.yml` redact_columns on every judge call (FR-G7, unit-tested);
   human answers judged by Gemini (`speaker: 'human'`) with Role B's keyword match as the rules-only fallback;

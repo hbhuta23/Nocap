@@ -5,7 +5,8 @@
   "main": "src/server.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test test/adapters.test.ts test/rules.test.ts",
+    "test:db": "tsx --test test/sql.db.test.ts"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

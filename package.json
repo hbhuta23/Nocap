@@ -15,7 +15,9 @@
     "test": "npm test --workspaces --if-present",
     "eval": "npm run eval -w @nocap/judge",
     "db:up": "docker compose up -d postgres",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "demo:reset": "docker compose down -v && docker compose up -d postgres",
+    "test:db": "npm run test:db -w @nocap/daemon"
   },
   "engines": {
     "node": ">=20"

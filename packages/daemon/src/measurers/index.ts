@@ -2,6 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
 import type { Fact, Measurer } from '@nocap/shared';
 import { DESTRUCTIVE_SQL } from '../classifier';
+import { sqlMeasurer } from './sql';
 
 const data: Measurer = { category: 'data', matches: (req) => DESTRUCTIVE_SQL.test(req.command) || /\brm\s+.*(?:-r|-f)/i.test(req.command), measure: async (req, ctx) => {
   const sql = req.command.match(/\b(?:delete|update|drop|truncate|alter)\b[\s\S]*/i)?.[0] ?? '';
@@ -25,4 +26,6 @@ const spend: Measurer = { category: 'spend', matches: (req) => /\b(python|python
   return { facts: [{ label: 'Estimated cost', value: estimateUsd === undefined ? "can't estimate" : `$${estimateUsd.toFixed(2)}`, severity: estimateUsd && estimateUsd > ctx.config.budget.per_command_usd ? 'high' : 'low' }], judgeContext: { provider: /anthropic/i.test(req.command) ? 'anthropic' : 'unknown', loopItems: items || 'unknown', estimateUsd, confidence: items ? 'medium' : 'low' } };
 } };
 
-export const measurers: Measurer[] = [data, testDiff, spend];
+// Order matters: the first matching measurer wins. The real SQL dry run beats the pattern-based data measurer,
+// which still handles rm and anything the dry run doesn't.
+export const measurers: Measurer[] = [sqlMeasurer, data, testDiff, spend];

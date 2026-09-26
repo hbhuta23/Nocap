@@ -12,7 +12,7 @@ const common = { bundle: true, platform: 'node', format: 'cjs', target: 'node20'
 
 const contexts = await Promise.all([
   esbuild.context({ ...common, entryPoints: [join(root, 'src/extension.ts')], outfile: join(root, 'dist/extension.js'), external: ['vscode'] }),
-  esbuild.context({ ...common, entryPoints: [join(root, '../daemon/src/server.ts')], outfile: join(root, 'dist/daemon.js') }),
+  esbuild.context({ ...common, entryPoints: [join(root, '../daemon/src/server.ts')], outfile: join(root, 'dist/daemon.js'), external: ['pg-native'] }),
 ]);
 
 mkdirSync(join(root, 'dist/shims'), { recursive: true });
