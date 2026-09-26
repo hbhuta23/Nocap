@@ -1,0 +1,26 @@
+{
+  "name": "nocap-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/shared",
+    "packages/judge",
+    "packages/daemon",
+    "packages/extension"
+  ],
+  "scripts": {
+    "dev:daemon": "npm run dev -w @nocap/daemon",
+    "build": "npm run build -w nocap",
+    "package": "npm run package -w nocap",
+    "typecheck": "tsc -p packages/shared --noEmit && tsc -p packages/judge --noEmit && tsc -p packages/daemon --noEmit && tsc -p packages/extension --noEmit",
+    "test": "npm test --workspaces --if-present",
+    "eval": "npm run eval -w @nocap/judge",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

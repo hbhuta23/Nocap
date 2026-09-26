@@ -1,0 +1,51 @@
+#!/bin/bash
+# nocap universal shim (A4). Owner: Role A.
+# Each wrapper in this folder runs: exec _nocap_shim <real-binary-name> "$@"
+# The extension prepends this folder to PATH in VS Code terminals only (A8).
+
+NAME="$1"; shift
+SHIM_DIR="$(cd "$(dirname "$0")" && pwd)"
+PORT="${NOCAP_PORT:-7777}"
+
+# Find a binary on PATH, skipping our own folder (otherwise we'd call ourselves forever).
+find_real() {
+  local IFS=:
+  for d in $PATH; do
+    [ "$d" = "$SHIM_DIR" ] && continue
+    [ -x "$d/$1" ] && { printf '%s' "$d/$1"; return 0; }
+  done
+  return 1
+}
+
+REAL="$(find_real "$NAME")" || { echo "nocap: $NAME not found on PATH" >&2; exit 127; }
+
+# Claude Code's PreToolUse hook already checked this command; don't check (or prompt) twice.
+if [ -n "$CLAUDECODE" ]; then exec "$REAL" "$@"; fi
+
+CURL="$(find_real curl)" || exec "$REAL" "$@"
+
+CURL_ARGS=(-sS --fail --max-time 310
+  --data-urlencode "bin=$NAME"
+  --data-urlencode "cwd=$PWD"
+  --data-urlencode "intent=${NOCAP_INTENT:-}"
+  --data-urlencode "session=${NOCAP_SESSION:-term-$PPID}")
+for a in "$@"; do CURL_ARGS+=(--data-urlencode "arg=$a"); done
+
+RESP="$("$CURL" "${CURL_ARGS[@]}" "http://127.0.0.1:$PORT/v1/shim" 2>/dev/null)"
+if [ $? -ne 0 ]; then
+  # FR-G4: daemon offline. Safe commands pass, risky ones are blocked.
+  if printf '%s ' "$NAME" "$@" | grep -Eiq 'rm -[a-z]*[rf]|DELETE FROM|DROP (TABLE|DATABASE)|TRUNCATE|reset --hard|clean -[a-z]*f|push (-f|--force)'; then
+    echo "nocap is offline, so risky commands are blocked." >&2
+    exit 86
+  fi
+  exec "$REAL" "$@"
+fi
+
+VERDICT="$(printf '%s\n' "$RESP" | head -n 1)"
+REASON="$(printf '%s\n' "$RESP" | tail -n +2)"
+
+case "$VERDICT" in
+  allow) exec "$REAL" "$@" ;;
+  warn) [ -n "$REASON" ] && echo "$REASON" >&2; exec "$REAL" "$@" ;;
+  *) echo "$REASON" >&2; exit 86 ;;
+esac
