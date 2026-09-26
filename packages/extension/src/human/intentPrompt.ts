@@ -27,8 +27,8 @@ export function enqueueHumanIntent(e: HumanNeeded) {
 
 /** Called for every `human.answered` stream event. */
 export function onHumanAnswered(checkId: string, outcome: HumanOutcome) {
-  // "mismatch" is not final: the check stays pending while the developer types the confirm number.
-  if (outcome === 'mismatch') return;
+  // Not final: after "mismatch" the developer types the confirm number; after "refused" they answer again.
+  if (outcome === 'mismatch' || outcome === 'refused') return;
   finished.add(checkId);
   if (current?.checkId === checkId) current.box.hide();
 }

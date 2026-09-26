@@ -48,7 +48,11 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
   }
   if (body.answer !== undefined) {
     const refusal = refuseReflexAnswer(body.answer, body.ms_since_open);
-    if (refusal) return { accepted: false, message: refusal };
+    if (refusal) {
+      // Counted by the panel as a blind approval prevented (FR-H6). Not final: the pop-up stays open.
+      bus.emit({ type: 'human.answered', check_id: body.check_id, outcome: 'refused', at: Date.now() });
+      return { accepted: false, message: refusal };
+    }
   }
   const check = pending.get(body.check_id);
   if (!check) return { accepted: false, message: 'This nocap check is no longer pending.' };

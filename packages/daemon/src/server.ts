@@ -32,6 +32,9 @@ export async function startServer(port = DAEMON_PORT) {
 
   app.post<{ Body: CheckRequest }>('/v1/check', async (req) => runCheck(req.body));
 
+  // Recent checks, tasks and pop-up outcomes, so the panel can rebuild itself after a reload.
+  app.get('/v1/recent', async () => bus.recent());
+
   app.post<{ Body: TaskRequest }>('/v1/task', async (req) => {
     sessions.setTask(req.body.session_id, req.body.task, req.body.source);
     return { ok: true };

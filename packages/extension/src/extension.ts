@@ -18,7 +18,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const statusBar = new StatusBar();
   const daemonManager = new DaemonManager(context, statusBar, workspaceRoot);
   const stream = new StreamClient();
-  const panel = new PanelProvider(context.extensionUri, stream);
+  const panel = new PanelProvider(context.extensionUri, stream, workspaceRoot);
 
   context.subscriptions.push(
     statusBar,
