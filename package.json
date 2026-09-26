@@ -1,0 +1,32 @@
+{
+  "name": "daemon",
+  "version": "1.0.0",
+  "description": "Daemon service using Fastify, WebSockets, and database drivers",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "mongodb": "^6.9.0",
+    "node-sql-parser": "^4.7.2",
+    "pg": "^8.13.0",
+    "shell-quote": "^1.8.2",
+    "simple-git": "^3.27.0",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.11",
+    "@types/pg": "^8.11.10",
+    "@types/shell-quote": "^1.7.5",
+    "@types/ws": "^8.5.12",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  }
+}
