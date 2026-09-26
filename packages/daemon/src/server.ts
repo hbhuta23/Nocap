@@ -13,7 +13,10 @@ import { sessions } from './sessions';
 import { registerClaudeRoutes } from './adapters/claude';
 import { registerShimRoutes } from './adapters/shim';
 
+// The daemon runs with cwd = the user's project, so look there first, then next to the daemon itself
+// (finds the repo's .env in dev). TODO(A): installed users should set the key via VS Code SecretStorage.
 loadEnv();
+loadEnv(__dirname);
 
 export async function startServer(port = DAEMON_PORT) {
   const app = Fastify({ logger: false });

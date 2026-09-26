@@ -36,21 +36,32 @@ export interface GeminiJudgeOptions {
 }
 
 export class GeminiJudge implements Judge {
-  private ai: GoogleGenAI | null;
-  private model: string;
-  private timeoutMs: number;
+  private ai: GoogleGenAI | null = null;
   private redactColumns: string[];
 
-  constructor(opts: GeminiJudgeOptions = {}) {
-    const apiKey = opts.apiKey ?? process.env.GEMINI_API_KEY;
-    this.ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-    this.model = opts.model ?? process.env.NOCAP_GEMINI_MODEL ?? 'gemini-3.8-flash';
-    this.timeoutMs = opts.timeoutMs ?? Number(process.env.NOCAP_JUDGE_TIMEOUT_MS ?? JUDGE_TIMEOUT_MS);
+  constructor(private opts: GeminiJudgeOptions = {}) {
     this.redactColumns = opts.redactColumns ?? [];
   }
 
+  // Settings are read on each call, not in the constructor: the daemon's pipeline builds its judge
+  // at import time, before server.ts has loaded .env.
+  private get model() {
+    return this.opts.model ?? process.env.NOCAP_GEMINI_MODEL ?? 'gemini-3.8-flash';
+  }
+
+  private get timeoutMs() {
+    return this.opts.timeoutMs ?? Number(process.env.NOCAP_JUDGE_TIMEOUT_MS ?? JUDGE_TIMEOUT_MS);
+  }
+
+  private client(): GoogleGenAI | null {
+    const apiKey = this.opts.apiKey ?? process.env.GEMINI_API_KEY;
+    if (!this.ai && apiKey) this.ai = new GoogleGenAI({ apiKey });
+    return this.ai;
+  }
+
   async judge(input: JudgeInput): Promise<JudgeResult> {
-    if (!this.ai) return rulesOnly(input, 'no GEMINI_API_KEY set');
+    const ai = this.client();
+    if (!ai) return rulesOnly(input, 'no GEMINI_API_KEY set');
 
     const safeInput = { ...input, judgeContext: redact(input.judgeContext, this.redactColumns) };
     const prompt = buildPrompt(safeInput);
@@ -60,7 +71,7 @@ export class GeminiJudge implements Judge {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const res = await withTimeout(
-          this.ai.models.generateContent({
+          ai.models.generateContent({
             model: this.model,
             contents: prompt,
             config: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, temperature: 0 },

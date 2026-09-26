@@ -130,6 +130,14 @@ testable TypeScript. Shims exit **86** on block/ask.
 - `judgeContext` must use explicit counts with clear names (`rows_matching_test_email_pattern: 178`), never bare ratios; the judge misread `1.0` as "1 row".
 - `UserPromptSubmit` fires on every prompt, so follow-ups like "yes go ahead" would overwrite the task. Needs handling in `sessions.ts`.
 
+## Status (update as things land)
+
+- Role B v1 (merged 2026-09-26): pipeline, classifier, policy, config loader, human-check flow, local `.nocap.audit.jsonl`.
+  **Measurers are placeholders:** row counts, cascades and spend are hard-coded by regex (e.g. `@test.local` → 178,
+  else 48,213). The real Postgres dry run (B6–B8), spend math (B10), and MongoDB (B15) are still to do.
+  The human-answer check uses keywords instead of the judge (`speaker: 'human'`, FR-H4).
+- Verified end to end: Claude Code hook → pipeline → Gemini judge → deny/allow; human pop-up flow via `/v1/human-intent`.
+
 ## Demo numbers (keep exact; BRD §5)
 
 - Data: 48,391 users (178 `@test.local`, 3 admins). Broad `DELETE ... last_login_at < now() - interval '90 days'` → 48,213 rows, 3 admins, 2 cascaded tables (`orders`, `sessions`) → block. `WHERE email LIKE '%@test.local'` → 178 → allow.
@@ -141,6 +149,8 @@ testable TypeScript. Shims exit **86** on block/ask.
 
 - TypeScript everywhere except the hook/shim scripts (bash/sh). Match the existing style: small modules, short comments that cite BRD IDs (`// A10`, `// FR-H3`).
 - Workspace packages export TS source directly (`main: src/index.ts`); esbuild bundles for the extension, `tsx` runs the daemon in dev.
-- Branch per person, PR (or fast-forward) into `main`. Run `npm run typecheck` and `npm run build` before pushing.
+- Branch per person, PR (or fast-forward) into `main`. Run `npm run typecheck` and `npm run build` before pushing. `main` must always typecheck.
+- Never commit `node_modules/` (it's gitignored; don't `git add -f`). Never replace the root `package.json`: it's the npm workspace root. A package's dependencies go in that package's own `package.json` (`npm i <lib> -w packages/daemon`).
+- When merging, if `packages/shared/src/types.ts` conflicts, keep the version the code compiles against and add new types on top. Never take "theirs" wholesale.
 - Secrets live in `.env` (gitignored). Never commit keys, and never log request bodies that might contain them.
 - Known limits we state openly: `/bin/rm` by full path skips shims (hooks still catch it for Claude Code); DB triggers calling outside services still fire during a dry run; we assume agents are fallible, not malicious.
