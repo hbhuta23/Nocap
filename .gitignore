@@ -15,3 +15,7 @@ out/
 
 # Claude Code per-developer settings (nocap installs its hooks here)
 .claude/settings.local.json
+
+# A0.2 recorder output: keep hook payloads, skip the noisy probe log and env metadata
+fixtures/shims/
+fixtures/hooks/**/*.meta

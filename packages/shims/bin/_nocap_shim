@@ -22,6 +22,25 @@ REAL="$(find_real "$NAME")" || { echo "nocap: $NAME not found on PATH" >&2; exit
 # Claude Code's PreToolUse hook already checked this command; don't check (or prompt) twice.
 if [ -n "$CLAUDECODE" ]; then exec "$REAL" "$@"; fi
 
+# Read-only git runs locally with no daemon round trip. Agents call git constantly in the background
+# (Claude Code: ~100 calls in 90 s for its status line and change tracking, recorded in A0.2).
+git_is_readonly() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -c|-C|--git-dir|--work-tree|--namespace) shift 2 ;;
+      -*) shift ;;
+      *) break ;;
+    esac
+  done
+  case "$1" in
+    status|log|show|diff|diff-tree|diff-index|rev-parse|rev-list|symbolic-ref|ls-files|ls-tree|cat-file|for-each-ref|describe|blame|shortlog|merge-base|write-tree|commit-tree) return 0 ;;
+    remote) case "$2" in ""|-v|get-url|show) return 0 ;; esac ;;
+    config) case " $* " in *" --get"*|*" --list "*|*" -l "*) return 0 ;; esac ;;
+  esac
+  return 1
+}
+if [ "$NAME" = git ] && git_is_readonly "$@"; then exec "$REAL" "$@"; fi
+
 CURL="$(find_real curl)" || exec "$REAL" "$@"
 
 CURL_ARGS=(-sS --fail --max-time 310

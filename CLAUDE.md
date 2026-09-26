@@ -22,6 +22,21 @@ Basic pattern checks: secrets, production systems, weakened security.
 
 **Never cut:** the data destruction check, the human intent pop-up, the CAP DETECTED screen.
 
+## Agent support: every agent, not just Claude Code
+
+Two interception layers, and the product must work with any CLI agent:
+
+| Layer | Agents | What we get |
+| --- | --- | --- |
+| Native hooks (deep) | Claude Code (`PreToolUse`, `UserPromptSubmit`), Codex CLI (`PreToolUse`, `UserPromptSubmit`; Claude-compatible output), Gemini CLI (`BeforeTool`, `BeforeAgent`; output `{decision, reason}`, timeouts in **ms**) | task, intent, file edits, deny with reason |
+| Shims (universal) | anything that runs shell commands in a VS Code terminal (Aider, Copilot CLI, ...) | commands only; intent via the `NOCAP_INTENT` retry protocol; task via panel |
+
+Rules: never write Claude-only logic in shared code paths. Each agent gets its own adapter in
+`packages/daemon/src/adapters/` that maps its hook JSON to `CheckRequest` and the verdict back to
+its output format. Verify every format against real payloads in `fixtures/hooks/<agent>/`.
+The shim must skip commands an agent's native hook already checked (Claude Code sets
+`CLAUDECODE=1` in its Bash tool; the Codex and Gemini equivalents come from the A0.2 probe).
+
 ## Team and ownership
 
 - **Role A — Hetansh**: AI connector + extension. Claude Code hooks, shims, the Gemini judge and
@@ -29,6 +44,9 @@ Basic pattern checks: secrets, production systems, weakened security.
   the human intent pop-up, eval set.
 - **Role B — teammate**: backend + panel. Daemon pipeline, fast classifier, config loader, measurers,
   policy engine, human-check flow, MongoDB audit log, side panel webview, demo seed data.
+- **Role C — teammate (no code)**: design and pitch. Pop-up and panel mockups, all user-facing
+  wording (the "strings" doc), brand, demo video, landing page, Devpost. Copy UI text from C's
+  strings doc; don't invent it.
 
 Stay inside your own folders (see README table). If you need a change in the other person's area,
 leave a `TODO(A)` / `TODO(B)` or ask, don't rewrite it.
@@ -58,6 +76,7 @@ npm run build               # esbuild: extension + daemon + shims → packages/e
 npm run package             # build + .vsix
 npm run eval                # judge eval set (needs GEMINI_API_KEY)
 npm run db:up / db:down     # Postgres 16 in Docker
+scripts/fixtures/setup.sh   # A0.2: sandbox that records real hook payloads from all agents
 ```
 
 Debug the extension: open `packages/extension` in VS Code, F5. If a daemon is already healthy on
@@ -99,7 +118,10 @@ testable TypeScript. Shims exit **86** on block/ask.
 ## Gotchas we already know about
 
 - Shims must skip their own folder when looking up the real binary (and use the real `curl`), or they recurse forever. `_nocap_shim` does this.
-- Claude Code's Bash tool inherits the terminal PATH, so its commands also hit the shims. Shims skip checking when `CLAUDECODE` is set, since the PreToolUse hook already checked. Confirm this env var in A0.2.
+- Claude Code's Bash tool inherits the terminal PATH, so its commands also hit the shims. Shims skip checking when `CLAUDECODE` is set, since the PreToolUse hook already checked (confirmed in A0.2: `CLAUDECODE=1` in the Bash tool).
+- A0.2 findings (Claude Code, `fixtures/hooks/claude-code/`): hooks fire in `auto` mode (now the default); every Bash call carries `tool_input.description` (free intent); `prompt_id` links each tool call to the `UserPromptSubmit` that caused it (use it for task tracking).
+- Claude Code itself runs `git` ~100 times in the background (status line, change tracking) without `CLAUDECODE` set. The shim runs read-only git locally with no daemon call; keep that fast path.
+- Agents notice shims and route around them: in A0.2 Claude inspected `.nocap-probe-bin/` and called `/opt/homebrew/bin/node` by full path. Native hooks saw every call anyway. Hooks are the primary layer; shims are the fallback.
 - Hooks are installed into `.claude/settings.local.json` (gitignored), not `settings.json`, so teammates without nocap aren't blocked by "nocap is offline". Claude Code reads hooks at startup: restart it (or review `/hooks`) after installing.
 - `environmentVariableCollection` only affects terminals opened after it's set; old terminals need relaunching.
 - The daemon is spawned with VS Code's own Node (`process.execPath` + `ELECTRON_RUN_AS_NODE=1`), so it must stay pure JS (no native modules).
