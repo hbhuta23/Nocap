@@ -95,7 +95,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <header class="top">
-    <span class="brand">nocap</span>
+    <span class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>nocap</span>
     <span id="status" class="status">on</span>
   </header>
   <div class="stats">
@@ -108,7 +108,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
   <section class="card">
     <div id="task-text" class="task-text muted"></div>
     <div id="task-meta" class="task-meta muted"></div>
-    <div class="row"><input id="task-input" placeholder="Set the agent's task"><button id="task-set">Set</button></div>
+    <div class="row"><input id="task-input" placeholder="Set the agent's task"><button id="task-set" class="primary">Set</button></div>
   </section>
 
   <div id="cap"></div>

@@ -18,7 +18,11 @@ export class DaemonManager implements vscode.Disposable {
     private workspaceRoot: string | undefined,
   ) {}
 
-  async start() {
+  private env: Record<string, string> = {};
+
+  /** `env` is added to the daemon's environment (the API key from SecretStorage). */
+  async start(env: Record<string, string> = {}) {
+    this.env = env;
     // A daemon may already be running (`npm run dev:daemon` while developing, or another window).
     if (!(await daemon.healthy())) this.spawn();
     this.healthTimer = setInterval(async () => this.statusBar.set((await daemon.healthy()) ? 'on' : 'offline'), 2_000);
@@ -29,7 +33,7 @@ export class DaemonManager implements vscode.Disposable {
     // Run with VS Code's own Node (Electron in node mode), so users don't need Node installed.
     this.proc = spawn(process.execPath, [script], {
       cwd: this.workspaceRoot,
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+      env: { ...process.env, ...this.env, ELECTRON_RUN_AS_NODE: '1' },
       stdio: 'ignore',
     });
     this.proc.on('exit', () => {

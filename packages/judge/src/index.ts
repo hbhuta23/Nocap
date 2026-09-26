@@ -53,9 +53,16 @@ export class GeminiJudge implements Judge {
     return this.opts.timeoutMs ?? Number(process.env.NOCAP_JUDGE_TIMEOUT_MS ?? JUDGE_TIMEOUT_MS);
   }
 
+  private aiKey: string | undefined;
+
+  /** Rebuilt when the key changes (the extension can hand the daemon a new key at runtime). */
   private client(): GoogleGenAI | null {
     const apiKey = this.opts.apiKey ?? process.env.GEMINI_API_KEY;
-    if (!this.ai && apiKey) this.ai = new GoogleGenAI({ apiKey });
+    if (!apiKey) return null;
+    if (!this.ai || this.aiKey !== apiKey) {
+      this.ai = new GoogleGenAI({ apiKey });
+      this.aiKey = apiKey;
+    }
     return this.ai;
   }
 

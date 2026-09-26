@@ -70,6 +70,11 @@
         "command": "nocap.manageRules",
         "title": "nocap: Team rules",
         "icon": "$(law)"
+      },
+      {
+        "command": "nocap.setApiKey",
+        "title": "nocap: Set Gemini API key",
+        "icon": "$(key)"
       }
     ],
     "menus": {
@@ -91,6 +96,16 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "nocap",
+      "properties": {
+        "nocap.autoProtect": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Protect every workspace automatically: install hooks for the AI agents on this machine (Claude Code, VS Code chat, Cursor, Codex, Gemini CLI, Antigravity) and put the terminal shims on PATH. Turn off to enable nocap per workspace with **nocap: Enable in this workspace**."
+        }
+      }
     }
   },
   "scripts": {

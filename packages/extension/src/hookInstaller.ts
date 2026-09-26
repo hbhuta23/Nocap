@@ -7,7 +7,7 @@
 //   Cursor       .cursor/hooks.json           (flat entries; nocap entries replaced on install)
 // Codex, Gemini and Antigravity hooks are only installed when that agent is on this machine.
 import * as vscode from 'vscode';
-import { existsSync, promises as fs } from 'node:fs';
+import { constants as fsConstants, existsSync, promises as fs } from 'node:fs';
 import { homedir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 
@@ -80,13 +80,14 @@ async function installAntigravity(script: string, root: string): Promise<boolean
   if (!onMachine('agy', '.gemini/antigravity-cli')) return false;
   const file = join(root, ANTIGRAVITY_FILE);
   await fs.mkdir(dirname(file), { recursive: true });
-  await fs.copyFile(file, file + '.nocap.bak').catch(() => {});
+  await fs.copyFile(file, file + '.nocap.bak', fsConstants.COPYFILE_EXCL).catch(() => {}); // first install only
   const groups = (await read(file)) as Record<string, unknown>;
   groups[ANTIGRAVITY_GROUP] = {
     PreToolUse: [{ matcher: ANTIGRAVITY_TOOLS, type: 'command', command: `${script} antigravity pre-tool-use`, timeout: HOLD_SECONDS + 10 }],
     PreInvocation: [{ type: 'command', command: `${script} antigravity pre-invocation`, timeout: 10 }],
   };
-  await fs.writeFile(file, JSON.stringify(groups, null, 2) + '\n');
+  await writeIfChanged(file, JSON.stringify(groups, null, 2) + '\n');
+  await excludeFromGit(root, ANTIGRAVITY_FILE);
   return true;
 }
 
@@ -106,7 +107,7 @@ async function installVsCode(script: string, root: string) {
       UserPromptSubmit: [{ type: 'command', command: `${script} vscode user-prompt-submit`, timeoutSec: 10 }],
     },
   };
-  await fs.writeFile(file, JSON.stringify(config, null, 2) + '\n');
+  await writeIfChanged(file, JSON.stringify(config, null, 2) + '\n');
   await excludeFromGit(root, VSCODE_FILE);
 }
 
@@ -123,7 +124,7 @@ async function installCursor(script: string, root: string): Promise<boolean> {
   if (!cursorPresent()) return false;
   const file = join(root, CURSOR_FILE);
   await fs.mkdir(dirname(file), { recursive: true });
-  await fs.copyFile(file, file + '.nocap.bak').catch(() => {});
+  await fs.copyFile(file, file + '.nocap.bak', fsConstants.COPYFILE_EXCL).catch(() => {}); // first install only
   const config = (await read(file)) as { version?: number; hooks?: Record<string, { command: string; timeout?: number }[]> };
   config.version ??= 1;
   config.hooks ??= {};
@@ -135,7 +136,7 @@ async function installCursor(script: string, root: string): Promise<boolean> {
   add('beforeShellExecution', 'before-shell', HOLD_SECONDS + 10);
   add('preToolUse', 'pre-tool-use', HOLD_SECONDS + 10);
   add('beforeSubmitPrompt', 'before-submit-prompt', 10);
-  await fs.writeFile(file, JSON.stringify(config, null, 2) + '\n');
+  await writeIfChanged(file, JSON.stringify(config, null, 2) + '\n');
   await excludeFromGit(root, CURSOR_FILE);
   return true;
 }
@@ -177,6 +178,12 @@ async function read(file: string): Promise<Settings> {
   }
 }
 
+/** Auto-protect re-installs on every startup: only touch the file when the content actually changes. */
+async function writeIfChanged(file: string, text: string) {
+  const current = await fs.readFile(file, 'utf8').catch(() => null);
+  if (current !== text) await fs.writeFile(file, text);
+}
+
 /** Remove existing nocap entries (and events left empty) so re-running never duplicates them. */
 function strip(settings: Settings) {
   for (const [event, entries] of Object.entries(settings.hooks ?? {})) {
@@ -197,12 +204,13 @@ export async function hooksInstalled(root: string): Promise<boolean> {
 export async function installHooks(context: vscode.ExtensionContext, root: string): Promise<string[]> {
   const script = `"${context.asAbsolutePath('dist/shims/hooks/nocap-hook.sh')}"`;
   const installed: string[] = [];
+  await excludeFromGit(root, '*.nocap.bak'); // backups of the users' own hook files stay out of git too
 
   for (const agent of AGENTS) {
     if (!agent.present()) continue;
     const file = join(root, agent.file);
     await fs.mkdir(dirname(file), { recursive: true });
-    await fs.copyFile(file, file + '.nocap.bak').catch(() => {});
+    await fs.copyFile(file, file + '.nocap.bak', fsConstants.COPYFILE_EXCL).catch(() => {}); // first install only
 
     const settings = await read(file);
     strip(settings);
@@ -212,7 +220,8 @@ export async function installHooks(context: vscode.ExtensionContext, root: strin
       if (matcher) entry.matcher = matcher;
       (settings.hooks[event] ??= []).push(entry);
     }
-    await fs.writeFile(file, JSON.stringify(settings, null, 2) + '\n');
+    await writeIfChanged(file, JSON.stringify(settings, null, 2) + '\n');
+    await excludeFromGit(root, agent.file);
     installed.push(agent.name);
   }
   if (await installAntigravity(script, root)) installed.push('Antigravity');

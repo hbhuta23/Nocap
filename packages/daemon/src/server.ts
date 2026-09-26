@@ -42,6 +42,15 @@ export async function startServer(port = DAEMON_PORT) {
 
   app.post<{ Body: HumanIntentRequest }>('/v1/human-intent', async (req) => submitHumanIntent(req.body));
 
+  // The extension hands over the Gemini key from VS Code SecretStorage (localhost only; never written to disk).
+  // The judge reads it on its next call.
+  app.post<{ Body: { gemini_api_key?: string } }>('/v1/key', async (req) => {
+    const key = req.body?.gemini_api_key?.trim();
+    if (!key) return { ok: false };
+    process.env.GEMINI_API_KEY = key;
+    return { ok: true };
+  });
+
   app.get('/v1/stream', { websocket: true }, (socket) => {
     const off = bus.subscribe((event) => socket.send(JSON.stringify(event)));
     socket.on('close', off);

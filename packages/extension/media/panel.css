@@ -1,75 +1,130 @@
-/* nocap side panel (B17–B20). VS Code theme colors only, so every light/dark theme works (C6). */
-:root { color-scheme: light dark; }
+/* nocap side panel (B17–B20).
+ * Everything is derived from the user's own theme: surfaces and borders are mixed from the sidebar colors, and the
+ * accents come from their TERMINAL palette (terminal.ansiRed/Green/Yellow/Blue), so nocap looks like it belongs in
+ * whatever theme they picked. Commands render in the terminal's own background and foreground.
+ */
+:root {
+  color-scheme: light dark;
+  --fg: var(--vscode-foreground);
+  --muted: var(--vscode-descriptionForeground);
+  --bg: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  --surface: color-mix(in srgb, var(--fg) 4%, var(--bg));
+  --surface-2: color-mix(in srgb, var(--fg) 8%, var(--bg));
+  --line: color-mix(in srgb, var(--fg) 11%, transparent);
+  --danger: var(--vscode-terminal-ansiRed, var(--vscode-errorForeground));
+  --ok: var(--vscode-terminal-ansiGreen, var(--vscode-testing-iconPassed));
+  --warn: var(--vscode-terminal-ansiYellow, var(--vscode-editorWarning-foreground));
+  --accent: var(--vscode-terminal-ansiBlue, var(--vscode-textLink-foreground));
+  --term-bg: var(--vscode-terminal-background, var(--vscode-editor-background));
+  --term-fg: var(--vscode-terminal-foreground, var(--vscode-editor-foreground));
+  --radius: 10px;
+}
 * { box-sizing: border-box; }
-body { margin: 0; padding: 12px 12px 24px; font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); }
-h2 { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--vscode-descriptionForeground); margin: 18px 0 8px; display: flex; justify-content: space-between; align-items: center; }
-button { font: inherit; color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 0; border-radius: 2px; padding: 4px 10px; cursor: pointer; }
-button:hover { background: var(--vscode-button-hoverBackground); }
-button.link { background: none; color: var(--vscode-textLink-foreground); padding: 0 2px; }
-button.link:hover { text-decoration: underline; background: none; }
-input { font: inherit; width: 100%; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, transparent); border-radius: 2px; padding: 5px 7px; }
-input:focus { outline: 1px solid var(--vscode-focusBorder); }
-.muted { color: var(--vscode-descriptionForeground); }
-.mono { font-family: var(--vscode-editor-font-family); font-size: 12px; overflow-wrap: anywhere; }
+body { margin: 0; padding: 14px 14px 28px; font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; }
+button { font: inherit; cursor: pointer; }
+input { font: inherit; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--vscode-editor-font-family); font-size: 11.5px; overflow-wrap: anywhere; }
 
-/* header */
-.top { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--vscode-panel-border); }
-.brand { font-size: 17px; font-weight: 700; letter-spacing: .02em; }
-.status { font-size: 11px; display: flex; align-items: center; gap: 5px; }
-.status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--vscode-testing-iconPassed); }
-.status.offline { color: var(--vscode-errorForeground); }
-.status.offline::before { background: var(--vscode-errorForeground); }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
-.stat { background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); border-radius: 3px; padding: 7px 8px; }
-.stat b { display: block; font-size: 18px; }
-.stat span { font-size: 10px; color: var(--vscode-descriptionForeground); }
-.stat.alert b { color: var(--vscode-testing-iconFailed); }
+/* ---------- header ---------- */
+.top { display: flex; justify-content: space-between; align-items: center; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+.brand svg { width: 20px; height: 20px; color: var(--accent); }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; padding: 3px 9px 3px 8px; border-radius: 999px; color: var(--ok); background: color-mix(in srgb, var(--ok) 13%, transparent); }
+.status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: pulse 2.4s infinite; }
+.status.offline { color: var(--danger); background: color-mix(in srgb, var(--danger) 13%, transparent); }
+.status.offline::before { animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 6px transparent; } }
 
-/* cards */
-.card { background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); border-radius: 3px; padding: 10px; }
-.row { display: flex; gap: 6px; margin-top: 8px; }
-.task-text { line-height: 1.4; white-space: pre-wrap; }
-.task-meta { font-size: 11px; margin-top: 4px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 10px 8px; }
+.stat b { display: block; font-size: 20px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.stat span { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.25; color: var(--muted); }
+.stat.alert { border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+.stat.alert b { color: var(--danger); }
 
-/* CAP DETECTED */
-.cap { border: 1px solid var(--vscode-testing-iconFailed); border-radius: 3px; padding: 10px; margin-top: 14px; background: color-mix(in srgb, var(--vscode-testing-iconFailed) 9%, var(--vscode-editor-background)); }
-.cap.allowed { border-color: var(--vscode-testing-iconPassed); background: color-mix(in srgb, var(--vscode-testing-iconPassed) 7%, var(--vscode-editor-background)); }
-.cap-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.cap-title { font-weight: 800; letter-spacing: .04em; color: var(--vscode-testing-iconFailed); }
-.cap.allowed .cap-title { color: var(--vscode-testing-iconPassed); }
-.cap-headline { margin: 6px 0 10px; font-weight: 600; line-height: 1.35; }
-.layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.layer { border: 1px solid var(--vscode-panel-border); border-radius: 3px; padding: 7px; background: var(--vscode-editor-background); min-width: 0; }
-.layer-label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--vscode-descriptionForeground); display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; }
-.layer-text { margin-top: 4px; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
-.ok { color: var(--vscode-testing-iconPassed); font-weight: 700; }
-.bad { color: var(--vscode-testing-iconFailed); font-weight: 700; }
-.bignums { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.bignum { flex: 1 1 90px; border-radius: 3px; padding: 7px; background: var(--vscode-editor-background); border: 1px solid var(--vscode-panel-border); }
-.bignum b { display: block; font-size: 20px; color: var(--vscode-testing-iconFailed); overflow-wrap: anywhere; }
-.bignum span { font-size: 11px; color: var(--vscode-descriptionForeground); }
+/* ---------- sections ---------- */
+h2 { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.link { background: none; border: 0; padding: 2px 4px; border-radius: 4px; color: var(--accent); font-size: 11.5px; text-transform: none; letter-spacing: 0; font-weight: 600; }
+.link:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 11px 12px; }
+
+/* task */
+.task-text { line-height: 1.45; white-space: pre-wrap; font-weight: 500; }
+.task-text.muted { font-weight: 400; }
+.task-meta { margin-top: 4px; font-size: 11px; }
+.row { display: flex; gap: 6px; margin-top: 10px; }
+.row input { flex: 1; min-width: 0; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--line)); border-radius: 7px; padding: 6px 9px; }
+.row input:focus { outline: none; border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px color-mix(in srgb, var(--vscode-focusBorder) 25%, transparent); }
+.primary { border: 0; border-radius: 7px; padding: 6px 12px; font-weight: 600; color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+.primary:hover { background: var(--vscode-button-hoverBackground); }
+
+/* ---------- CAP DETECTED ---------- */
+.cap { position: relative; overflow: hidden; margin-top: 16px; border-radius: 12px; padding: 14px 12px 10px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--line)); box-shadow: 0 6px 22px -14px color-mix(in srgb, var(--danger) 70%, transparent); }
+.cap::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--danger), color-mix(in srgb, var(--danger) 10%, transparent)); }
+.cap.allowed { border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); box-shadow: none; }
+.cap.allowed::before { background: linear-gradient(90deg, var(--ok), color-mix(in srgb, var(--ok) 10%, transparent)); }
+.cap-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cap-title { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .09em; color: var(--danger); }
+.cap-title::before { content: ''; width: 7px; height: 7px; border-radius: 2px; background: currentColor; transform: rotate(45deg); }
+.cap.allowed .cap-title { color: var(--ok); }
+.cap-head .muted { font-size: 11px; }
+.cap-headline { margin: 8px 0 12px; font-size: 14px; font-weight: 650; line-height: 1.35; letter-spacing: -.005em; }
+
+/* Task → Agent says → Actually does */
+.layers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.layer { position: relative; min-width: 0; padding: 8px 8px 9px; border-radius: 8px; background: var(--surface-2); }
+.layer:not(:last-child)::after { content: '›'; position: absolute; right: -11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+.layer-label { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.layer-text { margin-top: 5px; font-size: 11.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.ok, .bad { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; font-size: 9px; font-weight: 800; flex: none; }
+.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 18%, transparent); }
+.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, transparent); }
+.layer:has(.bad) { background: color-mix(in srgb, var(--danger) 9%, var(--surface-2)); }
+
+.bignums { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.bignum { flex: 1 1 88px; padding: 9px 10px; border-radius: 8px; background: color-mix(in srgb, var(--danger) 7%, var(--surface-2)); }
+.bignum b { display: block; font-size: 22px; font-weight: 750; line-height: 1.05; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--danger); overflow-wrap: anywhere; }
+.bignum span { display: block; margin-top: 3px; font-size: 10.5px; color: var(--muted); line-height: 1.3; }
 .facts { margin-top: 8px; }
-.fact { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 12px; border-bottom: 1px dotted var(--vscode-panel-border); }
-.fact span:last-child { text-align: right; overflow-wrap: anywhere; }
-.fact .high { color: var(--vscode-testing-iconFailed); font-weight: 700; }
-.agent-msg { margin-top: 10px; font-size: 12px; }
-.agent-msg p { margin: 4px 0 0; padding: 7px; border-left: 2px solid var(--vscode-textLink-foreground); background: var(--vscode-textBlockQuote-background); line-height: 1.4; }
-.cap-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; }
-.badge { font-size: 10px; padding: 1px 5px; border-radius: 8px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+.fact { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 11.5px; border-bottom: 1px solid var(--line); }
+.fact:last-child { border-bottom: 0; }
+.fact span:last-child { text-align: right; overflow-wrap: anywhere; font-weight: 500; }
+.fact .high { color: var(--danger); font-weight: 700; }
 
-/* rules */
+.agent-msg { margin-top: 11px; }
+.agent-msg > span { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.agent-msg p { margin: 5px 0 0; padding: 8px 10px; border-radius: 8px; line-height: 1.45; font-size: 12px; background: var(--surface-2); }
+/* Commands look like the user's own terminal. */
+.agent-msg p.mono { background: var(--term-bg); color: var(--term-fg); border: 1px solid var(--line); }
+.cap-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; font-size: 11px; }
+.badge { display: inline-block; margin-left: 4px; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+
+/* ---------- team rules ---------- */
 .rules { list-style: none; margin: 0; padding: 0; }
-.rules li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px dotted var(--vscode-panel-border); line-height: 1.35; }
-.rules li:last-child { border-bottom: 0; }
+.rules li { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); line-height: 1.4; }
+.rules li:first-child { padding-top: 0; }
+.rules li:last-child { border-bottom: 0; padding-bottom: 0; }
+.rules li::before { content: '§'; color: var(--accent); font-weight: 700; }
+.rules li span { flex: 1; }
+.rules li.muted::before { content: none; }
+.rules .link { opacity: 0; transition: opacity .12s; color: var(--muted); }
+.rules li:hover .link, .rules .link:focus { opacity: 1; }
 
-/* feed */
-.feed-row { display: block; width: 100%; text-align: left; color: inherit; background: var(--vscode-editor-background); border: 0; border-left: 3px solid var(--vscode-testing-iconPassed); border-radius: 0 3px 3px 0; padding: 6px 8px; margin: 5px 0; }
-.feed-row:hover { background: var(--vscode-list-hoverBackground); }
-.feed-row.block { border-left-color: var(--vscode-testing-iconFailed); }
-.feed-row.ask, .feed-row.warn { border-left-color: var(--vscode-editorWarning-foreground); }
-.feed-row.selected { outline: 1px solid var(--vscode-focusBorder); }
-.feed-top { display: flex; justify-content: space-between; font-size: 11px; }
-.verdict { font-weight: 700; text-transform: uppercase; }
-.feed-row.block .verdict { color: var(--vscode-testing-iconFailed); }
-.feed-headline { font-size: 12px; margin-top: 3px; }
-.safe-count { font-size: 12px; padding: 4px 2px; }
+/* ---------- live feed ---------- */
+#feed { position: relative; }
+.safe-count { display: flex; align-items: center; gap: 7px; padding: 2px 2px 8px; font-size: 11.5px; }
+.safe-count::before { content: '✓'; color: var(--ok); font-weight: 800; }
+.feed-row { position: relative; display: block; width: 100%; text-align: left; color: inherit; margin: 0 0 7px; padding: 8px 10px 8px 24px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line); transition: background .12s, border-color .12s, transform .12s; animation: rise .18s ease-out; }
+.feed-row::before { content: ''; position: absolute; left: 10px; top: 13px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent); }
+.feed-row.block::before { background: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 18%, transparent); }
+.feed-row.ask::before, .feed-row.warn::before { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 18%, transparent); }
+.feed-row:hover { background: var(--surface-2); transform: translateX(1px); }
+.feed-row.selected { border-color: color-mix(in srgb, var(--accent) 60%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.feed-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 10.5px; margin-bottom: 3px; }
+.verdict { font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--ok); }
+.feed-row.block .verdict { color: var(--danger); }
+.feed-row.ask .verdict, .feed-row.warn .verdict { color: var(--warn); }
+.feed-headline { margin-top: 3px; font-size: 11.5px; line-height: 1.35; }
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }

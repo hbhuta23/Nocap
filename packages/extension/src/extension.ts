@@ -10,6 +10,7 @@ import { notifyOnBlock } from './notifications';
 import { PanelProvider } from './panel/PanelProvider';
 import { daemon } from './daemonClient';
 import { manageRules, promptAddRule, readRules } from './rules';
+import { getApiKey, promptForApiKey, sendKeyToDaemon, welcome } from './onboarding';
 
 const noFolder = () => vscode.window.showErrorMessage('nocap: open a folder first.');
 
@@ -33,19 +34,21 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
 
     vscode.commands.registerCommand('nocap.enable', async () => {
-      if (!workspaceRoot) return vscode.window.showErrorMessage('nocap: open a folder first.');
-      const agents = await installHooks(context, workspaceRoot);
-      enableShims(context);
-      // TODO(A9): copy a default .nocap.yml into the workspace if missing.
-      const codexNote = agents.includes('Codex') ? ' In Codex, run /hooks once to trust the new hooks.' : '';
-      vscode.window.showInformationMessage(
-        `nocap is on for ${agents.join(', ')}, plus any other agent through the terminal shims. Relaunch open terminals and restart running agents.${codexNote}`,
-      );
+      if (!workspaceRoot) return noFolder();
+      await context.workspaceState.update(DISABLED, false);
+      await protect(true);
     }),
     vscode.commands.registerCommand('nocap.disable', async () => {
       if (workspaceRoot) await uninstallHooks(workspaceRoot);
       disableShims(context);
-      vscode.window.showInformationMessage('nocap is off for this workspace.');
+      await context.workspaceState.update(DISABLED, true); // stays off here, even with auto-protect
+      vscode.window.showInformationMessage('nocap is off for this workspace. Run "nocap: Enable in this workspace" to turn it back on.');
+    }),
+    vscode.commands.registerCommand('nocap.setApiKey', async () => {
+      if (await promptForApiKey(context)) {
+        statusBar.setNeedsKey(false);
+        vscode.window.showInformationMessage('nocap: key saved. The judge is on.');
+      }
     }),
     vscode.commands.registerCommand('nocap.setTask', async (providedTask?: string) => {
       const task = providedTask ?? await vscode.window.showInputBox({ prompt: 'What are you asking the agent to do?' });
@@ -74,11 +77,59 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  await daemonManager.start();
+  // The judge's key comes from SecretStorage. A daemon started by another window gets it over localhost.
+  const key = await getApiKey(context);
+  await daemonManager.start(key ? { GEMINI_API_KEY: key } : {});
+  if (key) await sendKeyToDaemon(key);
   stream.connect();
+  statusBar.setNeedsKey(!key);
 
-  // A3: make sure our hooks are still there on startup.
-  if (workspaceRoot && (await hooksInstalled(workspaceRoot))) await installHooks(context, workspaceRoot);
+  if (process.platform === 'win32') {
+    if (!context.globalState.get('nocap.windowsNotice')) {
+      await context.globalState.update('nocap.windowsNotice', true);
+      vscode.window.showWarningMessage('nocap runs on macOS and Linux for now. Windows support is on the way.');
+    }
+    return;
+  }
+
+  // Protect every workspace automatically (setting nocap.autoProtect), unless it was turned off here.
+  // This also refreshes hook paths after an extension update (A3).
+  const autoProtect = vscode.workspace.getConfiguration('nocap').get<boolean>('autoProtect', true);
+  if (workspaceRoot && autoProtect && !context.workspaceState.get<boolean>(DISABLED)) await protect(false);
+  else if (workspaceRoot && (await hooksInstalled(workspaceRoot))) await installHooks(context, workspaceRoot);
+
+  // First run: welcome → API key.
+  if (!key && !context.globalState.get<boolean>('nocap.welcomed')) {
+    await context.globalState.update('nocap.welcomed', true);
+    if (await welcome(context)) {
+      statusBar.setNeedsKey(false);
+      vscode.window.showInformationMessage("nocap is on. Your agents' risky actions will be checked before they run.", 'Open panel').then((c) => {
+        if (c) void vscode.commands.executeCommand('nocap.openPanel');
+      });
+    }
+  }
+
+  /** Install hooks for every agent on this machine + the terminal shims. `announce` = always say what happened. */
+  async function protect(announce: boolean) {
+    if (!workspaceRoot) return;
+    const agents = await installHooks(context, workspaceRoot);
+    enableShims(context);
+    const firstTime = !context.workspaceState.get<boolean>(ANNOUNCED);
+    if (!announce && !firstTime) return;
+    await context.workspaceState.update(ANNOUNCED, true);
+    const codexNote = agents.includes('Codex') ? ' In Codex, run /hooks once to trust them.' : '';
+    vscode.window
+      .showInformationMessage(
+        `nocap is protecting ${agents.join(', ')} and any agent in the terminal. Restart agents that were already running.${codexNote}`,
+        'Open panel',
+      )
+      .then((c) => {
+        if (c) void vscode.commands.executeCommand('nocap.openPanel');
+      });
+  }
 }
+
+const DISABLED = 'nocap.disabledHere';
+const ANNOUNCED = 'nocap.announcedHere';
 
 export function deactivate() {}
