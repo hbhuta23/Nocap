@@ -25,6 +25,7 @@ const RESPONSE_SCHEMA = {
     suggested_verdict: { type: Type.STRING, enum: ['allow', 'warn', 'block', 'ask'] },
     headline: { type: Type.STRING },
     reason_for_agent: { type: Type.STRING },
+    violated_rule: { type: Type.STRING, nullable: true },
   },
   required: ['task_fit', 'intent_effect', 'suggested_verdict', 'headline', 'reason_for_agent'],
 };

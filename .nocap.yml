@@ -18,3 +18,7 @@ production:
   kube_contexts: ["prod"]
 network:
   allow_domains: ["api.github.com", "registry.npmjs.org"]
+# Team rules: plain-English standards no agent action may break (edit from the nocap shield icon)
+rules:
+  - Never commit secrets or .env files
+  - Never force-push to main

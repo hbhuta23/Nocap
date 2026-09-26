@@ -121,6 +121,21 @@ Daemon API (localhost:7777):
 The last three are adapter routes (Role A) added so hook/shim scripts stay dumb and all mapping is
 testable TypeScript. Shims exit **86** on block/ask.
 
+## Team rules (the developer's own standards)
+
+Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so the whole team shares them:
+"Never touch the payments table", "Never edit files in db/migrations", "Ask before anything that costs more than $2".
+- Edited from VS Code: the **shield icon in the editor title bar** (next to Claude's) opens the nocap menu
+  (team rules, add a rule with suggestions, panel, set task); also `nocap: Add a team rule` / `nocap: Team rules`
+  and buttons on the panel's title bar. Code: `extension/src/rules.ts` (yaml Document API keeps comments).
+- Enforced by the judge (`rules` in `JudgeInput`; `violated_rule` in `JudgeResult`, quoted exactly). A broken rule
+  → `category: 'rule'`, fact "Team rule broken", headline "CAP DETECTED: breaks team rule …".
+- Routing (`daemon/src/rules.ts`): risky actions are always judged with the rules. A **safe** action goes to the
+  judge only if it mentions a rule keyword (local string match, e.g. "payment"), and is then stopped **only** for
+  a broken rule, never for task fit. No keyword hit → the <50 ms path is untouched.
+- Override for a non-numeric block is typing `override`. Rules bind agents; the human pop-up path ignores them.
+- Eval: 5 rule cases (35 total), graded on verdict AND the quoted rule; rules that aren't broken count as false blocks.
+
 ## Invariants (never break these)
 
 - **Dry runs never commit.** `BEGIN` → statement (3 s statement timeout, 1 s lock timeout) → `ROLLBACK` in `finally`. Refuse `COMMIT` and multi-statement input.

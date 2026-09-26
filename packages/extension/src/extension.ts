@@ -9,6 +9,9 @@ import { enqueueHumanIntent, onHumanAnswered } from './human/intentPrompt';
 import { notifyOnBlock } from './notifications';
 import { PanelProvider } from './panel/PanelProvider';
 import { daemon } from './daemonClient';
+import { manageRules, promptAddRule, readRules } from './rules';
+
+const noFolder = () => vscode.window.showErrorMessage('nocap: open a folder first.');
 
 export async function activate(context: vscode.ExtensionContext) {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -50,6 +53,21 @@ export async function activate(context: vscode.ExtensionContext) {
       if (task) await daemon.post('/v1/task', { session_id: 'panel', task, source: 'panel' });
     }),
     vscode.commands.registerCommand('nocap.openPanel', () => vscode.commands.executeCommand('workbench.view.extension.nocap')),
+    vscode.commands.registerCommand('nocap.addRule', () => (workspaceRoot ? promptAddRule(workspaceRoot) : noFolder())),
+    vscode.commands.registerCommand('nocap.manageRules', () => (workspaceRoot ? manageRules(workspaceRoot) : noFolder())),
+    // The shield icon in the editor title bar (next to Claude's) opens this menu.
+    vscode.commands.registerCommand('nocap.menu', async () => {
+      if (!workspaceRoot) return noFolder();
+      const rules = await readRules(workspaceRoot);
+      const items = [
+        { label: `$(law) Team rules (${rules.length})`, detail: rules.length ? rules.slice(0, 3).join(' · ') : 'Standards the AI must never break', command: 'nocap.manageRules' },
+        { label: '$(add) Add a team rule', command: 'nocap.addRule' },
+        { label: '$(shield) Open the nocap panel', command: 'nocap.openPanel' },
+        { label: "$(edit) Set the agent's task", command: 'nocap.setTask' },
+      ];
+      const picked = await vscode.window.showQuickPick(items, { title: 'nocap' });
+      if (picked) await vscode.commands.executeCommand(picked.command);
+    }),
     vscode.commands.registerCommand('nocap.relaunchTerminals', () => {
       // TODO(A8): don't kill terminals with a running agent; offer to open a fresh one instead.
       vscode.window.createTerminal('nocap').show();

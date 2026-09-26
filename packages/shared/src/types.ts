@@ -4,7 +4,7 @@
 // ---------- Enums ----------
 
 export type Verdict = 'allow' | 'warn' | 'block' | 'ask';
-export type Category = 'data' | 'spend' | 'test_cheat' | 'secrets' | 'prod' | 'security' | 'safe';
+export type Category = 'data' | 'spend' | 'test_cheat' | 'secrets' | 'prod' | 'security' | 'rule' | 'safe';
 export type Source = 'shim' | 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'antigravity_hook' | 'commit_shim';
 export type AgentName = 'claude-code' | 'codex' | 'gemini-cli' | 'antigravity' | 'unknown';
 export type Tool = 'bash' | 'edit' | 'write';
@@ -153,6 +153,8 @@ export interface JudgeInput {
   judgeContext: object;
   /** Column names to strip from judgeContext before it leaves the machine (.nocap.yml redact_columns, FR-G7). */
   redactColumns?: string[];
+  /** Team rules (.nocap.yml `rules`) the action must not break. */
+  rules?: string[];
 }
 
 export interface JudgeResult {
@@ -162,6 +164,8 @@ export interface JudgeResult {
   headline: string;
   reason_for_agent: string;
   mode: VerdictMode;
+  /** The team rule this action breaks, quoted exactly; null/absent when none. */
+  violated_rule?: string | null;
 }
 
 export interface Judge {
@@ -183,6 +187,8 @@ export interface NocapConfig {
   tests: { globs: string[] };
   production?: { hosts?: string[]; kube_contexts?: string[] };
   network?: { allow_domains?: string[] };
+  /** Team rules in plain English that no agent action may break ("Never touch the payments table"). */
+  rules?: string[];
 }
 
 // ---------- §6.7 MongoDB Atlas collections (from Role B) ----------

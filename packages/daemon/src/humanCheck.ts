@@ -55,7 +55,8 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
   const confirmNumber = keyNumber(check.response.facts);
   if (body.confirm !== undefined) {
     // FR-H5: the typed number must match the key measured number (e.g. 48213 rows).
-    if (body.confirm.replace(/[^0-9]/g, '') !== confirmNumber) return { accepted: false, message: `Type ${confirmNumber} to confirm this exact effect.` };
+    const typed = /^\d+$/.test(confirmNumber) ? body.confirm.replace(/[^0-9]/g, '') : body.confirm.trim().toLowerCase();
+    if (typed !== confirmNumber) return { accepted: false, message: `Type ${confirmNumber} to confirm this exact effect.` };
     clear(check, 'override');
     check.resolve({ ...check.response, verdict: 'allow', human_confirmed: true, reason_for_agent: 'Allowed after the developer confirmed the measured effect.' });
     await audit(check.request.cwd, { type: 'human_check', check_id: body.check_id, outcome: 'override', answer: body.confirm, at: Date.now() });
@@ -88,10 +89,11 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
 
 /** The number the developer must type to override (FR-H5): the first high-severity fact with a number. */
 function keyNumber(facts: VerdictResponse['facts']): string {
-  const withNumber = facts.filter((f) => /\d/.test(f.value));
+  const withNumber = facts.filter((f) => f.label !== 'Team rule broken' && /\d/.test(f.value));
   const fact = withNumber.find((f) => f.severity === 'high') ?? withNumber[0];
   // "48,213" → "48213", "$340.00" → "340"
-  return fact?.value.replace(/,/g, '').match(/\d+/)?.[0] ?? '1';
+  // No number to confirm (e.g. a broken team rule): type the word instead.
+  return fact?.value.replace(/,/g, '').match(/\d+/)?.[0] ?? 'override';
 }
 
 /** Role B's original heuristic, kept for rules-only mode (no judge). */

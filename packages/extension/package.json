@@ -55,8 +55,43 @@
       {
         "command": "nocap.relaunchTerminals",
         "title": "nocap: Relaunch terminals"
+      },
+      {
+        "command": "nocap.menu",
+        "title": "nocap",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "nocap.addRule",
+        "title": "nocap: Add a team rule",
+        "icon": "$(add)"
+      },
+      {
+        "command": "nocap.manageRules",
+        "title": "nocap: Team rules",
+        "icon": "$(law)"
       }
-    ]
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "nocap.menu",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "nocap.addRule",
+          "when": "view == nocap.panel",
+          "group": "navigation"
+        },
+        {
+          "command": "nocap.manageRules",
+          "when": "view == nocap.panel",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -65,7 +100,8 @@
   },
   "dependencies": {
     "@nocap/shared": "^0.0.1",
-    "ws": "^8.22.0"
+    "ws": "^8.22.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
