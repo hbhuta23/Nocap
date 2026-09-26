@@ -24,7 +24,7 @@ export async function runCheck(req: CheckRequest): Promise<VerdictResponse> {
   if (category !== 'safe') {
     const measurer = measurers.find((candidate) => candidate.category === category && candidate.matches(req));
     const measurement = measurer ? await measurer.measure(req, { config, task, workspaceRoot: req.cwd }) : { facts: [], judgeContext: { command: req.command } };
-    const judged = await judge.judge({ task, intent: req.intent, speaker: 'agent', category, judgeContext: measurement.judgeContext });
+    const judged = await judge.judge({ task, intent: req.intent, speaker: 'agent', category, judgeContext: measurement.judgeContext, redactColumns: config.database?.redact_columns });
     response = fromJudge(check_id, category, measurement.facts, judged);
     response = applyPolicy(response, config, category, measurement.judgeContext as Record<string, unknown>);
     const shouldAsk = config.human_check === 'risky' || (config.human_check === 'blocked_only' && response.verdict === 'block');

@@ -32,10 +32,16 @@ Two interception layers, and the product must work with any CLI agent:
 | Shims (universal) | anything that runs shell commands in a VS Code terminal (Aider, Copilot CLI, ...) | commands only; intent via the `NOCAP_INTENT` retry protocol; task via panel |
 
 Rules: never write Claude-only logic in shared code paths. Each agent gets its own adapter in
-`packages/daemon/src/adapters/` that maps its hook JSON to `CheckRequest` and the verdict back to
-its output format. Verify every format against real payloads in `fixtures/hooks/<agent>/`.
-The shim must skip commands an agent's native hook already checked (Claude Code sets
-`CLAUDECODE=1` in its Bash tool; the Codex and Gemini equivalents come from the A0.2 probe).
+`packages/daemon/src/adapters/` (`claude.ts`, `codex.ts`, `gemini.ts`) that maps its hook JSON to
+`CheckRequest` and the verdict back to its output format; `edits.ts` turns edit tools (and Codex
+`apply_patch`) into old/new file text. Routes: `/v1/claude/*`, `/v1/codex/*`, `/v1/gemini/*`; the hook
+script is `nocap-hook.sh <agent> <event>`. The installer writes Codex/Gemini hooks only when that CLI
+is on the machine. **Claude Code is verified against real payloads; Codex and Gemini are built from
+their docs and still need real payloads recorded into `fixtures/hooks/<agent>/` (scripts/fixtures/setup.sh).**
+
+No double checks: an agent's shell commands hit its hook AND the shims. Shims skip when `CLAUDECODE`
+is set, and for any agent the daemon remembers commands a hook let through for 60 s
+(`adapters/recent.ts`), so the shim answers `allow` without a second check or pop-up.
 
 ## Team and ownership
 
@@ -74,7 +80,8 @@ npm run typecheck           # tsc across all packages; run before every commit
 npm run dev:daemon          # daemon with tsx watch on :7777
 npm run build               # esbuild: extension + daemon + shims → packages/extension/dist
 npm run package             # build + .vsix
-npm run eval                # judge eval set (needs GEMINI_API_KEY)
+npm run eval                # judge eval: 30 cases + spend extractor, score and latency (needs GEMINI_API_KEY)
+npm test                    # unit tests: adapters (real Claude fixtures), redaction, task tracking
 npm run db:up / db:down     # Postgres 16 in Docker
 scripts/fixtures/setup.sh   # A0.2: sandbox that records real hook payloads from all agents
 ```
@@ -126,7 +133,8 @@ testable TypeScript. Shims exit **86** on block/ask.
 - `environmentVariableCollection` only affects terminals opened after it's set; old terminals need relaunching.
 - The daemon is spawned with VS Code's own Node (`process.execPath` + `ELECTRON_RUN_AS_NODE=1`), so it must stay pure JS (no native modules).
 - Port 7777 is shared across VS Code windows; the first window's daemon serves all of them.
-- Gemini (A0.3, 2026-09-26): `gemini-2.5-flash` is retired for new keys; default is `gemini-3.8-flash`. A call takes ~3.5–5 s, which is tight against the 4 s judge timeout (`NOCAP_JUDGE_TIMEOUT_MS` overrides it). Expect 503 "high demand" (retried once) and 429 quota errors on the free tier after a handful of calls; the key needs billing enabled before the demo.
+- Gemini model (decided from the A18 eval, 2026-09-26): **`gemini-flash-lite-latest`**: 30/30 on three runs, 0 false blocks, median ~1.1 s, max ~1.5 s (inside the 4 s judge timeout). `gemini-3.8-flash` scored the same but took 3–12 s; `gemini-3.5-flash-lite` let a snapshot overwrite through. `-latest` is an alias Google can move, so re-run `npm run eval` before the demo. `gemini-2.5-flash` is retired for new keys. 503 "high demand" is retried once; the key needs billing (free tier ran out after ~6 calls).
+- The pop-up's rules (queue, Escape = decline, close stale ones) are documented at the top of `extension/src/human/intentPrompt.ts`; they came from bugs in the first live test.
 - `judgeContext` must use explicit counts with clear names (`rows_matching_test_email_pattern: 178`), never bare ratios; the judge misread `1.0` as "1 row".
 - `UserPromptSubmit` fires on every prompt, so follow-ups like "yes go ahead" would overwrite the task. Needs handling in `sessions.ts`.
 
@@ -135,8 +143,18 @@ testable TypeScript. Shims exit **86** on block/ask.
 - Role B v1 (merged 2026-09-26): pipeline, classifier, policy, config loader, human-check flow, local `.nocap.audit.jsonl`.
   **Measurers are placeholders:** row counts, cascades and spend are hard-coded by regex (e.g. `@test.local` → 178,
   else 48,213). The real Postgres dry run (B6–B8), spend math (B10), and MongoDB (B15) are still to do.
-  The human-answer check uses keywords instead of the judge (`speaker: 'human'`, FR-H4).
-- Verified end to end: Claude Code hook → pipeline → Gemini judge → deny/allow; human pop-up flow via `/v1/human-intent`.
+  The data measurer's `judgeContext` should follow the field list in `judge/src/prompts/data.ts`; the
+  test-diff measurer should include the diff and `source_files_changed_this_session` (B11); the spend
+  measurer should call `judge.extractSpend(script)` (FR-S1) and compute dollars itself.
+- Role A (2026-09-26): judge + prompts for data, spend (incl. FR-S1 extractor), test-cheat and human answers;
+  eval 30/30 + extractor 3/3; redaction of `.nocap.yml` redact_columns on every judge call (FR-G7, unit-tested);
+  human answers judged by Gemini (`speaker: 'human'`) with Role B's keyword match as the rules-only fallback;
+  explicit `allow` to the agent after the developer confirms (`human_confirmed`, FR-H5); task tracking keeps
+  the real task across follow-ups (`sessions.addPrompt`, A2); Codex and Gemini adapters (docs-based).
+- Verified end to end: Claude Code/Codex/Gemini hook → pipeline → Gemini judge → deny in each agent's format;
+  pop-up flow with explicit allow; shim skips hook-checked commands (17 ms). Live-tested in VS Code with Claude Code.
+- Still to do (A): record real Codex/Gemini payloads and fix their adapters; A19 live tuning (each demo 5×
+  with a real agent); VS Code SecretStorage for the API key; the webview pop-up from Role C's design.
 
 ## Demo numbers (keep exact; BRD §5)
 

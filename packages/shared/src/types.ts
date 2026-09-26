@@ -5,7 +5,7 @@
 
 export type Verdict = 'allow' | 'warn' | 'block' | 'ask';
 export type Category = 'data' | 'spend' | 'test_cheat' | 'secrets' | 'prod' | 'security' | 'safe';
-export type Source = 'shim' | 'claude_hook' | 'commit_shim';
+export type Source = 'shim' | 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'commit_shim';
 export type AgentName = 'claude-code' | 'codex' | 'gemini-cli' | 'unknown';
 export type Tool = 'bash' | 'edit' | 'write';
 export type Severity = 'low' | 'medium' | 'high';
@@ -59,6 +59,8 @@ export interface VerdictResponse {
   reason_for_agent: string;
   mode: VerdictMode;
   latency_ms: number;
+  /** The developer approved this in nocap's pop-up, so hooks answer "allow" and the agent doesn't ask again (FR-H5). */
+  human_confirmed?: boolean;
 }
 
 // ---------- §6.1 Other endpoints ----------
@@ -66,7 +68,7 @@ export interface VerdictResponse {
 export interface TaskRequest {
   session_id: string;
   task: string;
-  source: 'claude_hook' | 'panel' | 'cli';
+  source: 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'panel' | 'cli';
 }
 
 export interface HumanIntentRequest {
@@ -149,6 +151,8 @@ export interface JudgeInput {
   speaker: 'agent' | 'human';
   category: Category;
   judgeContext: object;
+  /** Column names to strip from judgeContext before it leaves the machine (.nocap.yml redact_columns, FR-G7). */
+  redactColumns?: string[];
 }
 
 export interface JudgeResult {

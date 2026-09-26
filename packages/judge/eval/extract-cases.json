@@ -1,0 +1,20 @@
+[
+  {
+    "id": "extract-1-full-backfill (demo)",
+    "file": "scripts/backfill_embeddings.py",
+    "expected_loop_kind": "sql",
+    "script": "import os\nimport psycopg\nfrom openai import OpenAI\n\nclient = OpenAI()\nconn = psycopg.connect(os.environ['DATABASE_URL'])\n\nrows = conn.execute('SELECT id, body FROM documents').fetchall()\nfor doc_id, body in rows:\n    emb = client.embeddings.create(model='text-embedding-3-large', input=body)\n    conn.execute('UPDATE documents SET embedding = %s WHERE id = %s', (emb.data[0].embedding, doc_id))\nconn.commit()\n"
+  },
+  {
+    "id": "extract-2-file-lines",
+    "file": "scripts/summarize_file.py",
+    "expected_loop_kind": "file",
+    "script": "import json, anthropic\nclient = anthropic.Anthropic()\nwith open('exports/tickets.jsonl') as f:\n    for line in f:\n        t = json.loads(line)\n        client.messages.create(model='claude-haiku', max_tokens=300, messages=[{'role': 'user', 'content': 'Summarize: ' + t['body']}])\n"
+  },
+  {
+    "id": "extract-3-no-knowable-loop",
+    "file": "scripts/summarize_from_api.py",
+    "expected_loop_kind": "unknown",
+    "script": "import requests\nfrom openai import OpenAI\nclient = OpenAI()\nurl = 'https://support.example.com/api/tickets'\nwhile url:\n    page = requests.get(url).json()\n    for t in page['tickets']:\n        client.responses.create(model='gpt-5-mini', input='Summarize: ' + t['body'])\n    url = page.get('next')\n"
+  }
+]

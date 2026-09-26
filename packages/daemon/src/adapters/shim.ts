@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { quote } from 'shell-quote';
 import type { CheckRequest } from '@nocap/shared';
 import { runCheck } from '../pipeline';
+import { checkedByHook } from './recent';
 
 interface ShimBody {
   bin: string;
@@ -29,13 +30,16 @@ export function registerShimRoutes(app: FastifyInstance) {
       intent: b.intent || null,
     };
 
+    reply.type('text/plain');
+    // The agent's native hook (Claude Code, Codex, Gemini) already checked this command: don't check or prompt twice.
+    if (checkedByHook(check.cwd, check.command)) return 'allow\n';
+
     const v = await runCheck(check);
     let reason = v.reason_for_agent;
     // A5: force the agent to explain itself when it gave no intent.
     if (v.verdict !== 'allow' && v.verdict !== 'warn' && !check.intent) {
       reason += `\nnocap: this command needs a stated intent. Re-run it as NOCAP_INTENT="<why you are running it>" ${check.command}`;
     }
-    reply.type('text/plain');
     return `${v.verdict}\n${reason}`;
   });
 }

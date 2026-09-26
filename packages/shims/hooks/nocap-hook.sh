@@ -1,17 +1,19 @@
 #!/bin/sh
-# nocap Claude Code hook (A1, A2). Owner: Role A.
-# Usage (installed by the extension into .claude/settings.local.json):
-#   nocap-hook.sh pre-tool-use        (PreToolUse, matcher Bash|Edit|Write|MultiEdit, timeout 300)
-#   nocap-hook.sh user-prompt-submit  (UserPromptSubmit)
-# Forwards the raw hook JSON to the daemon and prints the daemon's hook output JSON.
+# nocap agent hook (A1, A2). Owner: Role A.
+# Installed by the extension into each agent's hook config:
+#   Claude Code  .claude/settings.local.json   nocap-hook.sh claude pre-tool-use | user-prompt-submit
+#   Codex CLI    .codex/hooks.json             nocap-hook.sh codex  pre-tool-use | user-prompt-submit
+#   Gemini CLI   .gemini/settings.json         nocap-hook.sh gemini before-tool  | before-agent
+# (Old form `nocap-hook.sh <event>` still means Claude Code.)
+# Forwards the raw hook JSON to the daemon and prints the daemon's reply in the agent's own format.
 
-EVENT="$1"
+if [ $# -ge 2 ]; then AGENT="$1"; EVENT="$2"; else AGENT="claude"; EVENT="$1"; fi
 PORT="${NOCAP_PORT:-7777}"
 PAYLOAD=$(cat)
 
 RESP=$(printf '%s' "$PAYLOAD" | /usr/bin/curl -sS --fail --max-time 310 \
   -H 'content-type: application/json' --data-binary @- \
-  "http://127.0.0.1:$PORT/v1/claude/$EVENT" 2>/dev/null)
+  "http://127.0.0.1:$PORT/v1/$AGENT/$EVENT" 2>/dev/null)
 
 if [ $? -eq 0 ]; then
   printf '%s' "$RESP"
@@ -19,8 +21,14 @@ if [ $? -eq 0 ]; then
 fi
 
 # FR-G4: daemon offline. Safe actions pass, obviously risky ones are denied.
-if [ "$EVENT" = "pre-tool-use" ] && printf '%s' "$PAYLOAD" | grep -Eiq \
+case "$EVENT" in pre-tool-use|before-tool) ;; *) exit 0 ;; esac
+if printf '%s' "$PAYLOAD" | grep -Eiq \
   'rm -[a-z]*[rf]|DELETE FROM|DROP (TABLE|DATABASE)|TRUNCATE|reset --hard|clean -[a-z]*f|push (-f|--force)|branch -D'; then
-  printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"nocap is offline, so risky actions are blocked. Ask the developer to start nocap."}}'
+  REASON="nocap is offline, so risky actions are blocked. Ask the developer to start nocap."
+  if [ "$AGENT" = "gemini" ]; then
+    printf '{"decision":"deny","reason":"%s"}' "$REASON"
+  else
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}' "$REASON"
+  fi
 fi
 exit 0

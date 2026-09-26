@@ -31,10 +31,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     vscode.commands.registerCommand('nocap.enable', async () => {
       if (!workspaceRoot) return vscode.window.showErrorMessage('nocap: open a folder first.');
-      await installHooks(context, workspaceRoot);
+      const agents = await installHooks(context, workspaceRoot);
       enableShims(context);
       // TODO(A9): copy a default .nocap.yml into the workspace if missing.
-      vscode.window.showInformationMessage('nocap is on. Relaunch open terminals so shims apply.');
+      const codexNote = agents.includes('Codex') ? ' In Codex, run /hooks once to trust the new hooks.' : '';
+      vscode.window.showInformationMessage(
+        `nocap is on for ${agents.join(', ')}, plus any other agent through the terminal shims. Relaunch open terminals and restart running agents.${codexNote}`,
+      );
     }),
     vscode.commands.registerCommand('nocap.disable', async () => {
       if (workspaceRoot) await uninstallHooks(workspaceRoot);

@@ -12,6 +12,8 @@ import { submitHumanIntent } from './humanCheck';
 import { sessions } from './sessions';
 import { registerClaudeRoutes } from './adapters/claude';
 import { registerShimRoutes } from './adapters/shim';
+import { registerCodexRoutes } from './adapters/codex';
+import { registerGeminiRoutes } from './adapters/gemini';
 
 // The daemon runs with cwd = the user's project, so look there first, then next to the daemon itself
 // (finds the repo's .env in dev). TODO(A): installed users should set the key via VS Code SecretStorage.
@@ -41,6 +43,8 @@ export async function startServer(port = DAEMON_PORT) {
 
   registerClaudeRoutes(app);
   registerShimRoutes(app);
+  registerCodexRoutes(app);
+  registerGeminiRoutes(app);
 
   await app.listen({ host: DAEMON_HOST, port });
   console.log(`nocap daemon listening on http://${DAEMON_HOST}:${port}`);

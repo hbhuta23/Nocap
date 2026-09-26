@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import type { Judge, JudgeInput, JudgeResult } from '@nocap/shared';
 import { JUDGE_TIMEOUT_MS } from '@nocap/shared';
 import { buildPrompt } from './prompts';
+import { buildSpendExtractionPrompt, SPEND_EXTRACTION_SCHEMA, type SpendExtraction } from './prompts/spend';
 import { redact } from './redact';
 
 const RESPONSE_SCHEMA = {
@@ -32,21 +33,19 @@ export interface GeminiJudgeOptions {
   apiKey?: string;
   model?: string;
   timeoutMs?: number;
+  /** Always redacted, on top of any per-call `redactColumns`. */
   redactColumns?: string[];
 }
 
 export class GeminiJudge implements Judge {
   private ai: GoogleGenAI | null = null;
-  private redactColumns: string[];
 
-  constructor(private opts: GeminiJudgeOptions = {}) {
-    this.redactColumns = opts.redactColumns ?? [];
-  }
+  constructor(private opts: GeminiJudgeOptions = {}) {}
 
   // Settings are read on each call, not in the constructor: the daemon's pipeline builds its judge
   // at import time, before server.ts has loaded .env.
   private get model() {
-    return this.opts.model ?? process.env.NOCAP_GEMINI_MODEL ?? 'gemini-3.8-flash';
+    return this.opts.model ?? process.env.NOCAP_GEMINI_MODEL ?? 'gemini-flash-lite-latest';
   }
 
   private get timeoutMs() {
@@ -60,32 +59,46 @@ export class GeminiJudge implements Judge {
   }
 
   async judge(input: JudgeInput): Promise<JudgeResult> {
+    // FR-G7: strip redacted columns (from .nocap.yml) and secret-looking strings before anything leaves the machine.
+    const columns = [...(this.opts.redactColumns ?? []), ...(input.redactColumns ?? [])];
+    const safeInput = { ...input, judgeContext: redact(input.judgeContext, columns) };
+    const result = await this.generate<Omit<JudgeResult, 'mode'>>(buildPrompt(safeInput), RESPONSE_SCHEMA);
+    return result.ok ? { ...result.value, mode: 'full' } : rulesOnly(input, result.error);
+  }
+
+  /**
+   * FR-S1: read a script that calls an LLM API and describe its cost structure.
+   * The AI reads, math decides: this returns structure only. The dollar estimate is computed by the
+   * spend measurer from the real loop count and prices.json. Returns null when the judge is unavailable.
+   */
+  async extractSpend(script: string, fileName = 'script'): Promise<SpendExtraction | null> {
+    const result = await this.generate<SpendExtraction>(buildSpendExtractionPrompt(redact(script, []), fileName), SPEND_EXTRACTION_SCHEMA);
+    return result.ok ? result.value : null;
+  }
+
+  /** One Gemini JSON call. A17: one retry for transient errors (503 overloaded, 429 rate limit). */
+  private async generate<T>(prompt: string, schema: object): Promise<{ ok: true; value: T } | { ok: false; error: string }> {
     const ai = this.client();
-    if (!ai) return rulesOnly(input, 'no GEMINI_API_KEY set');
+    if (!ai) return { ok: false, error: 'no GEMINI_API_KEY set' };
 
-    const safeInput = { ...input, judgeContext: redact(input.judgeContext, this.redactColumns) };
-    const prompt = buildPrompt(safeInput);
-
-    // A17: one retry for transient errors (503 overloaded, 429 rate limit), then rules only.
-    let lastError = '';
+    let error = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const res = await withTimeout(
           ai.models.generateContent({
             model: this.model,
             contents: prompt,
-            config: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, temperature: 0 },
+            config: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0 },
           }),
           this.timeoutMs,
         );
-        const parsed = JSON.parse(res.text ?? '{}') as Omit<JudgeResult, 'mode'>;
-        return { ...parsed, mode: 'full' };
+        return { ok: true, value: JSON.parse(res.text ?? '{}') as T };
       } catch (err) {
-        lastError = err instanceof Error ? err.message : String(err);
-        if (!/\b(503|429|UNAVAILABLE|RESOURCE_EXHAUSTED)\b/.test(lastError)) break;
+        error = err instanceof Error ? err.message : String(err);
+        if (!/\b(503|429|UNAVAILABLE|RESOURCE_EXHAUSTED)\b/.test(error)) break;
       }
     }
-    return rulesOnly(input, lastError);
+    return { ok: false, error };
   }
 }
 
@@ -112,3 +125,4 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 export { redact } from './redact';
+export type { SpendExtraction } from './prompts/spend';

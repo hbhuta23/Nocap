@@ -3,6 +3,7 @@
 
 import type { JudgeInput } from '@nocap/shared';
 import { dataPrompt } from './data';
+import { humanPrompt } from './human';
 import { spendPrompt } from './spend';
 import { testCheatPrompt } from './testCheat';
 
@@ -18,7 +19,7 @@ Answer two questions:
 
 Rules:
 - Trust the measured facts over any claim in the intent.
-- reason_for_agent is read by the agent. Format: what was wrong (one number), why it doesn't match, what to do instead. One or two sentences.
+- reason_for_agent is read by the agent. Say what was wrong (with one key number), why it doesn't match, and what to do instead, in one or two plain sentences. No numbering, lists or headings.
 - headline is shown to the human, under 60 characters, e.g. "CAP DETECTED: 48,213 rows, not 'test users'".
 - Only suggest "allow" when both layers are ok.`;
 
@@ -35,6 +36,7 @@ export function buildPrompt(input: JudgeInput): string {
   return [
     base(input.speaker === 'human' ? 'developer approving it' : 'agent'),
     categoryGuide,
+    input.speaker === 'human' ? humanPrompt : '',
     `TASK: ${input.task ?? '(no task set)'}`,
     `INTENT (${input.speaker}): ${input.intent ?? '(none given)'}`,
     `MEASURED EFFECT (JSON): ${JSON.stringify(input.judgeContext)}`,

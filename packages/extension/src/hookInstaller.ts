@@ -1,58 +1,125 @@
-// A3: merge nocap's hooks into .claude/settings.local.json without overwriting anything.
-// settings.local.json (gitignored) rather than settings.json, so teammates without nocap
-// don't inherit hooks that block them with "nocap is offline".
+// A3: merge nocap's hooks into each agent's project hook config without overwriting anything.
+//   Claude Code  .claude/settings.local.json  (gitignored, so teammates without nocap aren't blocked)
+//   Codex CLI    .codex/hooks.json            (Codex asks the developer to trust new hooks once, via /hooks)
+//   Gemini CLI   .gemini/settings.json        (timeouts in milliseconds)
+// Codex and Gemini hooks are only installed when that agent is on this machine.
 import * as vscode from 'vscode';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, promises as fs } from 'node:fs';
+import { homedir } from 'node:os';
+import { delimiter, dirname, join } from 'node:path';
 
 const MARKER = 'nocap-hook.sh';
+const HOLD_SECONDS = 300; // FR-H1: the human pop-up may hold a command for up to 5 minutes
 
 type HookEntry = { matcher?: string; hooks: { type: 'command'; command: string; timeout?: number }[] };
 type Settings = { hooks?: Record<string, HookEntry[]>; [k: string]: unknown };
 
-const settingsPath = (root: string) => join(root, '.claude', 'settings.local.json');
+interface AgentHooks {
+  name: string;
+  /** Config file, relative to the workspace root. */
+  file: string;
+  /** Installed only when this returns true. */
+  present: () => boolean;
+  /** event name in the agent's config → [nocap event, tool matcher (tool events only), timeout in the agent's unit]. */
+  events: Record<string, [string, string | undefined, number]>;
+  hookArg: string;
+}
 
-async function read(root: string): Promise<Settings> {
+const AGENTS: AgentHooks[] = [
+  {
+    name: 'Claude Code',
+    file: '.claude/settings.local.json',
+    present: () => true,
+    hookArg: 'claude',
+    events: {
+      PreToolUse: ['pre-tool-use', 'Bash|Edit|Write|MultiEdit', HOLD_SECONDS + 10],
+      UserPromptSubmit: ['user-prompt-submit', undefined, 10],
+    },
+  },
+  {
+    name: 'Codex',
+    file: '.codex/hooks.json',
+    present: () => onMachine('codex', '.codex'),
+    hookArg: 'codex',
+    events: {
+      PreToolUse: ['pre-tool-use', '^(Bash|apply_patch)$', HOLD_SECONDS + 10],
+      UserPromptSubmit: ['user-prompt-submit', undefined, 10],
+    },
+  },
+  {
+    name: 'Gemini CLI',
+    file: '.gemini/settings.json',
+    present: () => onMachine('gemini', '.gemini'),
+    hookArg: 'gemini',
+    events: {
+      BeforeTool: ['before-tool', '^(run_shell_command|write_file|replace|edit|edit_file)$', (HOLD_SECONDS + 10) * 1000],
+      BeforeAgent: ['before-agent', undefined, 10_000],
+    },
+  },
+];
+
+/** The agent's CLI is on PATH (or a common install dir), or it has a config folder in the home directory. */
+function onMachine(bin: string, homeDir: string): boolean {
+  if (existsSync(join(homedir(), homeDir))) return true;
+  const dirs = [...(process.env.PATH ?? '').split(delimiter), '/opt/homebrew/bin', '/usr/local/bin', join(homedir(), '.npm-global/bin')];
+  return dirs.some((d) => d && existsSync(join(d, bin)));
+}
+
+async function read(file: string): Promise<Settings> {
   try {
-    return JSON.parse(await fs.readFile(settingsPath(root), 'utf8'));
+    return JSON.parse(await fs.readFile(file, 'utf8'));
   } catch {
     return {};
   }
 }
 
-/** Remove any existing nocap entries so re-running never duplicates them. */
+/** Remove existing nocap entries (and events left empty) so re-running never duplicates them. */
 function strip(settings: Settings) {
   for (const [event, entries] of Object.entries(settings.hooks ?? {})) {
-    settings.hooks![event] = entries.filter((e) => !e.hooks.some((h) => h.command.includes(MARKER)));
+    const kept = entries.filter((e) => !e.hooks?.some((h) => h.command.includes(MARKER)));
+    if (kept.length) settings.hooks![event] = kept;
+    else delete settings.hooks![event];
   }
 }
 
 export async function hooksInstalled(root: string): Promise<boolean> {
-  return JSON.stringify(await read(root)).includes(MARKER);
+  for (const a of AGENTS) {
+    if (JSON.stringify(await read(join(root, a.file))).includes(MARKER)) return true;
+  }
+  return false;
 }
 
-export async function installHooks(context: vscode.ExtensionContext, root: string) {
-  const file = settingsPath(root);
-  await fs.mkdir(join(root, '.claude'), { recursive: true });
-  await fs.copyFile(file, file + '.nocap.bak').catch(() => {});
+/** Installs hooks for every agent present on this machine. Returns the agents' names. */
+export async function installHooks(context: vscode.ExtensionContext, root: string): Promise<string[]> {
+  const script = `"${context.asAbsolutePath('dist/shims/hooks/nocap-hook.sh')}"`;
+  const installed: string[] = [];
 
-  const settings = await read(root);
-  strip(settings);
-  const hook = `"${context.asAbsolutePath('dist/shims/hooks/nocap-hook.sh')}"`;
-  settings.hooks ??= {};
-  (settings.hooks.PreToolUse ??= []).push({
-    matcher: 'Bash|Edit|Write|MultiEdit',
-    hooks: [{ type: 'command', command: `${hook} pre-tool-use`, timeout: 300 }],
-  });
-  (settings.hooks.UserPromptSubmit ??= []).push({
-    hooks: [{ type: 'command', command: `${hook} user-prompt-submit`, timeout: 10 }],
-  });
+  for (const agent of AGENTS) {
+    if (!agent.present()) continue;
+    const file = join(root, agent.file);
+    await fs.mkdir(dirname(file), { recursive: true });
+    await fs.copyFile(file, file + '.nocap.bak').catch(() => {});
 
-  await fs.writeFile(file, JSON.stringify(settings, null, 2) + '\n');
+    const settings = await read(file);
+    strip(settings);
+    settings.hooks ??= {};
+    for (const [event, [nocapEvent, matcher, timeout]] of Object.entries(agent.events)) {
+      const entry: HookEntry = { hooks: [{ type: 'command', command: `${script} ${agent.hookArg} ${nocapEvent}`, timeout }] };
+      if (matcher) entry.matcher = matcher;
+      (settings.hooks[event] ??= []).push(entry);
+    }
+    await fs.writeFile(file, JSON.stringify(settings, null, 2) + '\n');
+    installed.push(agent.name);
+  }
+  return installed;
 }
 
 export async function uninstallHooks(root: string) {
-  const settings = await read(root);
-  strip(settings);
-  await fs.writeFile(settingsPath(root), JSON.stringify(settings, null, 2) + '\n');
+  for (const agent of AGENTS) {
+    const file = join(root, agent.file);
+    if (!existsSync(file)) continue;
+    const settings = await read(file);
+    strip(settings);
+    await fs.writeFile(file, JSON.stringify(settings, null, 2) + '\n');
+  }
 }

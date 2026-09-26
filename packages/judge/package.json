@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "eval": "tsx eval/run.ts"
+    "eval": "tsx eval/run.ts",
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
