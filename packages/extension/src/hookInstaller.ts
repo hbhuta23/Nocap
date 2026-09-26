@@ -71,7 +71,8 @@ function onMachine(bin: string, homeDir: string): boolean {
 // the docs' nested `hooks: [...]` form is rejected, and tool hooks need a matcher.
 const ANTIGRAVITY_FILE = '.agents/hooks.json';
 const ANTIGRAVITY_GROUP = 'nocap';
-const ANTIGRAVITY_TOOLS = 'run_command|write_to_file|replace_file_content|multi_replace_file_content';
+// Both name styles: the transcript says run_command, agy's runtime log says RunCommand (which one the matcher sees is unverified).
+const ANTIGRAVITY_TOOLS = 'run_command|write_to_file|replace_file_content|multi_replace_file_content|RunCommand|WriteToFile|ReplaceFileContent|MultiReplaceFileContent';
 
 async function installAntigravity(script: string, root: string): Promise<boolean> {
   if (!onMachine('agy', '.gemini/antigravity-cli')) return false;

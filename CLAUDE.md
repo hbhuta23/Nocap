@@ -47,7 +47,7 @@ config is `<workspace>/.agents/hooks.json` as named groups (nocap owns `"nocap"`
 `multi_replace_file_content`, `write_to_file` (`TargetFile`, `CodeContent`). `PreInvocation` carries no prompt:
 read the last `<USER_REQUEST>` from the transcript file. Output `{decision: deny|ask|allow, reason}`.
 Parse check without running an agent: `cd <workspace> && agy agents`, then grep `hooks` in `~/.gemini/antigravity-cli/cli.log`.
-Workspace hooks load in 1.2.11 (the "workspace hooks ignored" bug was on 1.2.4).
+Workspace hooks load in 1.2.11 (the "workspace hooks ignored" bug was on 1.2.4), BUT **tool hooks never execute in 1.2.11**: a probe with no matcher, `""`, `".*"`, `"RunCommand"` and nocap's own matcher fired none of them, while `PreInvocation` works. The runtime log names the tool `RunCommand`, so the adapter accepts both name styles. Until Google fixes it, Antigravity is covered by the shims (commands + human pop-up), with the task borrowed from the workspace's latest agent prompt (`sessions.getTaskForWorkspace`).
 
 No double checks: an agent's shell commands hit its hook AND the shims. Shims skip when `CLAUDECODE`
 is set, and for any agent the daemon remembers commands a hook let through for 60 s

@@ -34,7 +34,7 @@ export function registerClaudeRoutes(app: FastifyInstance) {
   });
 
   app.post<{ Body: UserPromptSubmitPayload }>('/v1/claude/user-prompt-submit', async (req) => {
-    sessions.addPrompt(req.body.session_id, req.body.prompt, 'claude_hook');
+    sessions.addPrompt(req.body.session_id, req.body.prompt, 'claude_hook', req.body.cwd);
     return {};
   });
 }

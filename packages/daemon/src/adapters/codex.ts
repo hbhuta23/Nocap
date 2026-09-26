@@ -19,7 +19,7 @@ export function registerCodexRoutes(app: FastifyInstance) {
   });
 
   app.post<{ Body: UserPromptSubmitPayload }>('/v1/codex/user-prompt-submit', async (req) => {
-    sessions.addPrompt(req.body.session_id, req.body.prompt, 'codex_hook');
+    sessions.addPrompt(req.body.session_id, req.body.prompt, 'codex_hook', req.body.cwd);
     return {};
   });
 }

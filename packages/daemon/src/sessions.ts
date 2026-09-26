@@ -17,6 +17,7 @@ interface SessionTask {
 }
 
 const sessionTasks = new Map<string, SessionTask>();
+const lastSessionByWorkspace = new Map<string, string>();
 const MAX_FOLLOW_UPS = 3;
 const CONFIRMATION = /^(y|yes|yep|yeah|ok|okay|sure|go|go ahead|do it|continue|proceed|approved?|lgtm|sounds good|please do|yes please)[.!]*$/i;
 
@@ -49,10 +50,26 @@ export const sessions = {
     publish(sessionId, source);
   },
 
-  /** A prompt the developer sent to the agent (UserPromptSubmit / BeforeAgent). */
-  addPrompt(sessionId: string, prompt: string, source: TaskRequest['source']) {
+  /**
+   * Task of the agent session that most recently sent a prompt from this workspace. Shim checks don't know
+   * their agent session (e.g. Antigravity, whose tool hooks don't run in 1.2.11), so they borrow it.
+   */
+  getTaskForWorkspace(cwd: string): string | null {
+    let best: { ws: string; sessionId: string } | null = null;
+    for (const [ws, sessionId] of lastSessionByWorkspace) {
+      if ((cwd === ws || cwd.startsWith(ws + '/')) && (!best || ws.length > best.ws.length)) best = { ws, sessionId };
+    }
+    return best ? sessions.getTask(best.sessionId) : null;
+  },
+
+  /** A prompt the developer sent to the agent (UserPromptSubmit / BeforeAgent / Antigravity transcript). */
+  addPrompt(sessionId: string, prompt: string, source: TaskRequest['source'], workspace?: string) {
     const text = prompt.trim();
     if (!text) return;
+    if (workspace) {
+      lastSessionByWorkspace.delete(workspace); // re-insert so iteration order stays most-recent-last
+      lastSessionByWorkspace.set(workspace, sessionId);
+    }
     const current = sessionTasks.get(sessionId);
     if (current && isFollowUp(text)) {
       current.followUps = [...current.followUps, text].slice(-MAX_FOLLOW_UPS);

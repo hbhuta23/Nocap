@@ -28,6 +28,11 @@ export interface AntigravityPreToolUse extends AntigravityBase {
 
 export const ANTIGRAVITY_TOOLS = ['run_command', 'write_to_file', 'replace_file_content', 'multi_replace_file_content'];
 
+/** The transcript says `run_command`; agy's runtime log says `RunCommand`. Accept both: RunCommand → run_command. */
+export function toolName(name: string | undefined): string {
+  return (name ?? '').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+}
+
 export function registerAntigravityRoutes(app: FastifyInstance) {
   app.post<{ Body: AntigravityPreToolUse }>('/v1/antigravity/pre-tool-use', async (req) => {
     const check = toAntigravityCheckRequest(req.body);
@@ -41,7 +46,7 @@ export function registerAntigravityRoutes(app: FastifyInstance) {
     // PreInvocation fires before every model call in a turn; only record each new prompt once.
     if (prompt && lastPrompt.get(req.body.conversationId) !== prompt) {
       lastPrompt.set(req.body.conversationId, prompt);
-      sessions.addPrompt(req.body.conversationId, prompt, 'antigravity_hook');
+      sessions.addPrompt(req.body.conversationId, prompt, 'antigravity_hook', req.body.workspacePaths?.[0]);
     }
     return {};
   });
@@ -57,7 +62,7 @@ export function toAntigravityCheckRequest(p: AntigravityPreToolUse): CheckReques
   const intent: string | null = args.toolAction ?? args.Description ?? args.Instruction ?? args.toolSummary ?? null;
   const file: string = args.TargetFile;
 
-  switch (p.toolCall?.name) {
+  switch (toolName(p.toolCall?.name)) {
     case 'run_command':
       return { ...base, tool: 'bash', command: String(args.CommandLine ?? ''), intent };
     case 'write_to_file':

@@ -19,7 +19,7 @@ export function registerGeminiRoutes(app: FastifyInstance) {
   });
 
   app.post<{ Body: UserPromptSubmitPayload }>('/v1/gemini/before-agent', async (req) => {
-    sessions.addPrompt(req.body.session_id, req.body.prompt, 'gemini_hook');
+    sessions.addPrompt(req.body.session_id, req.body.prompt, 'gemini_hook', req.body.cwd);
     return {};
   });
 }
