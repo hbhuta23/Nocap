@@ -1,0 +1,14 @@
+{
+  // F5: build the extension + daemon, then open a new VS Code window with nocap loaded.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run nocap extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "nocap: build"
+    }
+  ]
+}
