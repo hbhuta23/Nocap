@@ -1,0 +1,20 @@
+# nocap rules for this repo (BRD §6.6). We dogfood nocap on its own build.
+version: 1
+database:
+  url_env: DATABASE_URL
+  protected_tables: [payments, audit_log]
+  sensitive_rows:
+    - table: users
+      where: "role = 'admin'"
+  redact_columns: [email, name, password_hash, phone]
+human_check: risky # risky | blocked_only | off
+budget:
+  per_command_usd: 5
+  per_session_usd: 20
+tests:
+  globs: ["**/*.test.*", "**/*.spec.*", "**/test_*.py", "tests/**"]
+production:
+  hosts: ["db.prod.internal"]
+  kube_contexts: ["prod"]
+network:
+  allow_domains: ["api.github.com", "registry.npmjs.org"]
