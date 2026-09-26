@@ -1,5 +1,5 @@
 // nocap daemon (localhost:7777). Owner: Role B, except src/adapters/ (Role A).
-// Currently the B1 stub: every route exists, verdicts are hard-coded in pipeline.ts.
+// Role B owns the local API and streams; agent-specific request mapping stays in adapters/.
 
 import Fastify from 'fastify';
 import formbody from '@fastify/formbody';
