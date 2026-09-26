@@ -77,6 +77,8 @@ export interface HumanIntentRequest {
   confirm?: string;
   /** How long the pop-up was open before submit, for FR-H3 / FR-H6. */
   ms_since_open: number;
+  /** The developer dismissed the pop-up (Escape): deny now instead of waiting for the timeout. */
+  cancel?: boolean;
 }
 
 export interface HumanIntentResponse {
@@ -112,7 +114,7 @@ export type StreamEvent =
   | { type: 'human.answered'; check_id: string; outcome: HumanOutcome; at: number };
 
 /** How a human intent check ended (FR-H5/H6). Shared by the stream event and the audit log. */
-export type HumanOutcome = 'match' | 'mismatch' | 'override' | 'timeout' | 'refused';
+export type HumanOutcome = 'match' | 'mismatch' | 'override' | 'timeout' | 'refused' | 'declined';
 
 // ---------- §6.5 Plug-in interfaces inside the daemon ----------
 

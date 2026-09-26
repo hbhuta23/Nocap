@@ -1,8 +1,9 @@
 import { existsSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
 import type { Fact, Measurer } from '@nocap/shared';
+import { DESTRUCTIVE_SQL } from '../classifier';
 
-const data: Measurer = { category: 'data', matches: (req) => /\b(delete|update|drop|truncate|alter)\b|\brm\s+.*(?:-r|-f)/i.test(req.command), measure: async (req, ctx) => {
+const data: Measurer = { category: 'data', matches: (req) => DESTRUCTIVE_SQL.test(req.command) || /\brm\s+.*(?:-r|-f)/i.test(req.command), measure: async (req, ctx) => {
   const sql = req.command.match(/\b(?:delete|update|drop|truncate|alter)\b[\s\S]*/i)?.[0] ?? '';
   const paths = [...req.command.matchAll(/(?:^|\s)(\.?\.?\/?[^\s;|]+)/g)].map((m) => m[1]).filter((p) => /\//.test(p));
   const outside = paths.some((p) => { const full = isAbsolute(p) ? p : join(ctx.workspaceRoot, p); return relative(ctx.workspaceRoot, full).startsWith('..'); });

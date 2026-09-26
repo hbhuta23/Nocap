@@ -5,7 +5,7 @@ import { StatusBar } from './statusBar';
 import { StreamClient } from './streamClient';
 import { enableShims, disableShims } from './pathInjection';
 import { installHooks, uninstallHooks, hooksInstalled } from './hookInstaller';
-import { askHumanIntent } from './human/intentPrompt';
+import { enqueueHumanIntent, onHumanAnswered } from './human/intentPrompt';
 import { notifyOnBlock } from './notifications';
 import { PanelProvider } from './panel/PanelProvider';
 import { daemon } from './daemonClient';
@@ -24,7 +24,8 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider('nocap.panel', panel),
 
     stream.onEvent((e) => {
-      if (e.type === 'human.needed') void askHumanIntent(e);
+      if (e.type === 'human.needed') enqueueHumanIntent(e);
+      if (e.type === 'human.answered') onHumanAnswered(e.check_id, e.outcome);
       if (e.type === 'check.finished') notifyOnBlock(e);
     }),
 

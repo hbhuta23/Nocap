@@ -33,7 +33,7 @@ git_is_readonly() {
     esac
   done
   case "$1" in
-    status|log|show|diff|diff-tree|diff-index|rev-parse|rev-list|symbolic-ref|ls-files|ls-tree|cat-file|for-each-ref|describe|blame|shortlog|merge-base|write-tree|commit-tree) return 0 ;;
+    status|log|show|diff|diff-tree|diff-index|rev-parse|rev-list|symbolic-ref|ls-files|ls-tree|cat-file|for-each-ref|describe|blame|shortlog|merge-base|write-tree|commit-tree|update-index|hash-object|mktree) return 0 ;;
     remote) case "$2" in ""|-v|get-url|show) return 0 ;; esac ;;
     config) case " $* " in *" --get"*|*" --list "*|*" -l "*) return 0 ;; esac ;;
   esac

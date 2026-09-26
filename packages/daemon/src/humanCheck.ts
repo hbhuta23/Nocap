@@ -35,6 +35,17 @@ export function holdForHuman(input: Omit<Pending, 'resolve' | 'timer'>): Promise
 }
 
 export async function submitHumanIntent(body: HumanIntentRequest): Promise<HumanIntentResponse> {
+  if (body.cancel) {
+    // Escape in the pop-up: release the agent now with a deny instead of holding it until the 5-minute timeout.
+    const check = pending.get(body.check_id);
+    if (!check) return { accepted: true };
+    clearTimeout(check.timer);
+    pending.delete(check.check_id);
+    bus.emit({ type: 'human.answered', check_id: check.check_id, outcome: 'declined', at: Date.now() });
+    check.resolve({ ...check.response, verdict: 'block', reason_for_agent: 'Blocked by nocap: the developer declined this action. Ask them what they want instead.' });
+    await audit(check.request.cwd, { type: 'human_check', check_id: body.check_id, outcome: 'declined', at: Date.now() });
+    return { accepted: true };
+  }
   if (body.answer !== undefined) {
     const refusal = refuseReflexAnswer(body.answer, body.ms_since_open);
     if (refusal) return { accepted: false, message: refusal };
