@@ -1,0 +1,50 @@
+// nocap daemon (localhost:7777). Owner: Role B, except src/adapters/ (Role A).
+// Currently the B1 stub: every route exists, verdicts are hard-coded in pipeline.ts.
+
+import Fastify from 'fastify';
+import formbody from '@fastify/formbody';
+import websocket from '@fastify/websocket';
+import { DAEMON_HOST, DAEMON_PORT } from '@nocap/shared';
+import type { CheckRequest, HealthResponse, HumanIntentRequest, TaskRequest } from '@nocap/shared';
+import { bus } from './bus';
+import { runCheck } from './pipeline';
+import { submitHumanIntent } from './humanCheck';
+import { sessions } from './sessions';
+import { registerClaudeRoutes } from './adapters/claude';
+import { registerShimRoutes } from './adapters/shim';
+
+export async function startServer(port = DAEMON_PORT) {
+  const app = Fastify({ logger: false });
+  await app.register(formbody);
+  await app.register(websocket);
+
+  app.get('/v1/health', async (): Promise<HealthResponse> => ({ ok: true, version: '0.0.1' }));
+
+  app.post<{ Body: CheckRequest }>('/v1/check', async (req) => runCheck(req.body));
+
+  app.post<{ Body: TaskRequest }>('/v1/task', async (req) => {
+    sessions.setTask(req.body.session_id, req.body.task, req.body.source);
+    return { ok: true };
+  });
+
+  app.post<{ Body: HumanIntentRequest }>('/v1/human-intent', async (req) => submitHumanIntent(req.body));
+
+  app.get('/v1/stream', { websocket: true }, (socket) => {
+    const off = bus.subscribe((event) => socket.send(JSON.stringify(event)));
+    socket.on('close', off);
+  });
+
+  registerClaudeRoutes(app);
+  registerShimRoutes(app);
+
+  await app.listen({ host: DAEMON_HOST, port });
+  console.log(`nocap daemon listening on http://${DAEMON_HOST}:${port}`);
+  return app;
+}
+
+if (require.main === module) {
+  startServer().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

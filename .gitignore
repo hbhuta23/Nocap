@@ -1,0 +1,17 @@
+node_modules/
+dist/
+out/
+*.vsix
+*.log
+.DS_Store
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# local audit log fallback (B15)
+.nocap/
+
+# Claude Code per-developer settings (nocap installs its hooks here)
+.claude/settings.local.json

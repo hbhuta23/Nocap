@@ -1,0 +1,77 @@
+{
+  "name": "nocap",
+  "displayName": "nocap",
+  "description": "Makes every AI coding agent prove what it's about to do before it does it.",
+  "version": "0.0.1",
+  "publisher": "nocap",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nocap",
+          "title": "nocap",
+          "icon": "media/nocap.svg"
+        }
+      ]
+    },
+    "views": {
+      "nocap": [
+        {
+          "type": "webview",
+          "id": "nocap.panel",
+          "name": "nocap"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "nocap.enable",
+        "title": "nocap: Enable in this workspace"
+      },
+      {
+        "command": "nocap.disable",
+        "title": "nocap: Disable in this workspace"
+      },
+      {
+        "command": "nocap.setTask",
+        "title": "nocap: Set task"
+      },
+      {
+        "command": "nocap.openPanel",
+        "title": "nocap: Open panel"
+      },
+      {
+        "command": "nocap.relaunchTerminals",
+        "title": "nocap: Relaunch terminals"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "package": "npm run build && vsce package --no-dependencies --allow-missing-repository --skip-license"
+  },
+  "dependencies": {
+    "@nocap/shared": "^0.0.1",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.90.0",
+    "@types/ws": "^8.18.1",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2"
+  }
+}
