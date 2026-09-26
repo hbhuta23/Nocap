@@ -44,8 +44,8 @@ export class GeminiJudge implements Judge {
   constructor(opts: GeminiJudgeOptions = {}) {
     const apiKey = opts.apiKey ?? process.env.GEMINI_API_KEY;
     this.ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-    this.model = opts.model ?? process.env.NOCAP_GEMINI_MODEL ?? 'gemini-2.5-flash';
-    this.timeoutMs = opts.timeoutMs ?? JUDGE_TIMEOUT_MS;
+    this.model = opts.model ?? process.env.NOCAP_GEMINI_MODEL ?? 'gemini-3.8-flash';
+    this.timeoutMs = opts.timeoutMs ?? Number(process.env.NOCAP_JUDGE_TIMEOUT_MS ?? JUDGE_TIMEOUT_MS);
     this.redactColumns = opts.redactColumns ?? [];
   }
 
@@ -55,21 +55,26 @@ export class GeminiJudge implements Judge {
     const safeInput = { ...input, judgeContext: redact(input.judgeContext, this.redactColumns) };
     const prompt = buildPrompt(safeInput);
 
-    // TODO(A17): one retry before falling back.
-    try {
-      const res = await withTimeout(
-        this.ai.models.generateContent({
-          model: this.model,
-          contents: prompt,
-          config: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, temperature: 0 },
-        }),
-        this.timeoutMs,
-      );
-      const parsed = JSON.parse(res.text ?? '{}') as Omit<JudgeResult, 'mode'>;
-      return { ...parsed, mode: 'full' };
-    } catch (err) {
-      return rulesOnly(input, err instanceof Error ? err.message : String(err));
+    // A17: one retry for transient errors (503 overloaded, 429 rate limit), then rules only.
+    let lastError = '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await withTimeout(
+          this.ai.models.generateContent({
+            model: this.model,
+            contents: prompt,
+            config: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA, temperature: 0 },
+          }),
+          this.timeoutMs,
+        );
+        const parsed = JSON.parse(res.text ?? '{}') as Omit<JudgeResult, 'mode'>;
+        return { ...parsed, mode: 'full' };
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        if (!/\b(503|429|UNAVAILABLE|RESOURCE_EXHAUSTED)\b/.test(lastError)) break;
+      }
     }
+    return rulesOnly(input, lastError);
   }
 }
 

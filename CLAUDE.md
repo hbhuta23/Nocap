@@ -126,6 +126,8 @@ testable TypeScript. Shims exit **86** on block/ask.
 - `environmentVariableCollection` only affects terminals opened after it's set; old terminals need relaunching.
 - The daemon is spawned with VS Code's own Node (`process.execPath` + `ELECTRON_RUN_AS_NODE=1`), so it must stay pure JS (no native modules).
 - Port 7777 is shared across VS Code windows; the first window's daemon serves all of them.
+- Gemini (A0.3, 2026-09-26): `gemini-2.5-flash` is retired for new keys; default is `gemini-3.8-flash`. A call takes ~3.5–5 s, which is tight against the 4 s judge timeout (`NOCAP_JUDGE_TIMEOUT_MS` overrides it). Expect 503 "high demand" (retried once) and 429 quota errors on the free tier after a handful of calls; the key needs billing enabled before the demo.
+- `judgeContext` must use explicit counts with clear names (`rows_matching_test_email_pattern: 178`), never bare ratios; the judge misread `1.0` as "1 row".
 - `UserPromptSubmit` fires on every prompt, so follow-ups like "yes go ahead" would overwrite the task. Needs handling in `sessions.ts`.
 
 ## Demo numbers (keep exact; BRD §5)

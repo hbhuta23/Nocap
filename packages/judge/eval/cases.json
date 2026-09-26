@@ -12,7 +12,7 @@
         "rows_affected": 48213,
         "sensitive_rows": { "users.role = 'admin'": 3 },
         "cascades": { "orders": 1204, "sessions": 5310 },
-        "sample_rows_matching_test_pattern": 0.004
+        "rows_matching_test_email_pattern": 178
       }
     }
   },
@@ -29,7 +29,7 @@
         "rows_affected": 178,
         "sensitive_rows": {},
         "cascades": {},
-        "sample_rows_matching_test_pattern": 1.0
+        "rows_matching_test_email_pattern": 178
       }
     }
   }

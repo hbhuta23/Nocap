@@ -4,7 +4,7 @@
 import Fastify from 'fastify';
 import formbody from '@fastify/formbody';
 import websocket from '@fastify/websocket';
-import { DAEMON_HOST, DAEMON_PORT } from '@nocap/shared';
+import { DAEMON_HOST, DAEMON_PORT, loadEnv } from '@nocap/shared';
 import type { CheckRequest, HealthResponse, HumanIntentRequest, TaskRequest } from '@nocap/shared';
 import { bus } from './bus';
 import { runCheck } from './pipeline';
@@ -12,6 +12,8 @@ import { submitHumanIntent } from './humanCheck';
 import { sessions } from './sessions';
 import { registerClaudeRoutes } from './adapters/claude';
 import { registerShimRoutes } from './adapters/shim';
+
+loadEnv();
 
 export async function startServer(port = DAEMON_PORT) {
   const app = Fastify({ logger: false });
