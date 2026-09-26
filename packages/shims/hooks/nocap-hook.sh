@@ -6,6 +6,7 @@
 #   Gemini CLI   .gemini/settings.json         nocap-hook.sh gemini before-tool  | before-agent
 #   Antigravity  .agents/hooks.json            nocap-hook.sh antigravity pre-tool-use | pre-invocation
 #   VS Code chat .github/hooks/nocap.json      nocap-hook.sh vscode pre-tool-use | user-prompt-submit
+#   Cursor       .cursor/hooks.json            nocap-hook.sh cursor before-shell | pre-tool-use | before-submit-prompt
 # (Old form `nocap-hook.sh <event>` still means Claude Code.)
 # Forwards the raw hook JSON to the daemon and prints the daemon's reply in the agent's own format.
 
@@ -23,11 +24,13 @@ if [ $? -eq 0 ]; then
 fi
 
 # FR-G4: daemon offline. Safe actions pass, obviously risky ones are denied.
-case "$EVENT" in pre-tool-use|before-tool) ;; *) exit 0 ;; esac
+case "$EVENT" in pre-tool-use|before-tool|before-shell) ;; *) exit 0 ;; esac
 if printf '%s' "$PAYLOAD" | grep -Eiq \
   'rm -[a-z]*[rf]|DELETE FROM|DROP (TABLE|DATABASE)|TRUNCATE|reset --hard|clean -[a-z]*f|push (-f|--force)|branch -D'; then
   REASON="nocap is offline, so risky actions are blocked. Ask the developer to start nocap."
-  if [ "$AGENT" = "gemini" ] || [ "$AGENT" = "antigravity" ]; then
+  if [ "$AGENT" = "cursor" ]; then
+    printf '{"permission":"deny","user_message":"%s","agent_message":"%s"}' "$REASON" "$REASON"
+  elif [ "$AGENT" = "gemini" ] || [ "$AGENT" = "antigravity" ]; then
     printf '{"decision":"deny","reason":"%s"}' "$REASON"
   else
     printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}' "$REASON"

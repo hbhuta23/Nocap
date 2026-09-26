@@ -16,6 +16,7 @@ import { registerCodexRoutes } from './adapters/codex';
 import { registerGeminiRoutes } from './adapters/gemini';
 import { registerAntigravityRoutes } from './adapters/antigravity';
 import { registerVsCodeRoutes } from './adapters/vscode';
+import { registerCursorRoutes } from './adapters/cursor';
 
 // The daemon runs with cwd = the user's project, so look there first, then next to the daemon itself
 // (finds the repo's .env in dev). TODO(A): installed users should set the key via VS Code SecretStorage.
@@ -49,6 +50,7 @@ export async function startServer(port = DAEMON_PORT) {
   registerGeminiRoutes(app);
   registerAntigravityRoutes(app);
   registerVsCodeRoutes(app);
+  registerCursorRoutes(app);
 
   await app.listen({ host: DAEMON_HOST, port });
   console.log(`nocap daemon listening on http://${DAEMON_HOST}:${port}`);

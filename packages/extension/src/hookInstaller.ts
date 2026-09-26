@@ -3,6 +3,8 @@
 //   Codex CLI    .codex/hooks.json            (Codex asks the developer to trust new hooks once, via /hooks)
 //   Gemini CLI   .gemini/settings.json        (timeouts in milliseconds)
 //   Antigravity  .agents/hooks.json           (named groups of flat entries; nocap owns the "nocap" group)
+//   VS Code chat .github/hooks/nocap.json     (Copilot agent mode; nocap owns the file)
+//   Cursor       .cursor/hooks.json           (flat entries; nocap entries replaced on install)
 // Codex, Gemini and Antigravity hooks are only installed when that agent is on this machine.
 import * as vscode from 'vscode';
 import { existsSync, promises as fs } from 'node:fs';
@@ -108,6 +110,48 @@ async function installVsCode(script: string, root: string) {
   await excludeFromGit(root, VSCODE_FILE);
 }
 
+// ---------- Cursor ----------
+// .cursor/hooks.json { version: 1, hooks: { <event>: [{ command, timeout }] } } (flat entries). Other hooks in
+// the file are kept; nocap's entries are replaced on every install. Kept out of git like the others.
+const CURSOR_FILE = '.cursor/hooks.json';
+
+function cursorPresent(): boolean {
+  return vscode.env.appName.toLowerCase().includes('cursor') || onMachine('cursor', '.cursor');
+}
+
+async function installCursor(script: string, root: string): Promise<boolean> {
+  if (!cursorPresent()) return false;
+  const file = join(root, CURSOR_FILE);
+  await fs.mkdir(dirname(file), { recursive: true });
+  await fs.copyFile(file, file + '.nocap.bak').catch(() => {});
+  const config = (await read(file)) as { version?: number; hooks?: Record<string, { command: string; timeout?: number }[]> };
+  config.version ??= 1;
+  config.hooks ??= {};
+  for (const [event, entries] of Object.entries(config.hooks)) {
+    config.hooks[event] = entries.filter((e) => !e.command?.includes(MARKER));
+  }
+  const add = (event: string, nocapEvent: string, timeout: number) =>
+    (config.hooks![event] ??= []).push({ command: `${script} cursor ${nocapEvent}`, timeout });
+  add('beforeShellExecution', 'before-shell', HOLD_SECONDS + 10);
+  add('preToolUse', 'pre-tool-use', HOLD_SECONDS + 10);
+  add('beforeSubmitPrompt', 'before-submit-prompt', 10);
+  await fs.writeFile(file, JSON.stringify(config, null, 2) + '\n');
+  await excludeFromGit(root, CURSOR_FILE);
+  return true;
+}
+
+async function uninstallCursor(root: string) {
+  const file = join(root, CURSOR_FILE);
+  if (!existsSync(file)) return;
+  const config = (await read(file)) as { hooks?: Record<string, { command: string }[]> };
+  for (const [event, entries] of Object.entries(config.hooks ?? {})) {
+    const kept = entries.filter((e) => !e.command?.includes(MARKER));
+    if (kept.length) config.hooks![event] = kept;
+    else delete config.hooks![event];
+  }
+  await fs.writeFile(file, JSON.stringify(config, null, 2) + '\n');
+}
+
 /** Adds a path to .git/info/exclude (a local, uncommitted .gitignore). No-op outside a git repo. */
 async function excludeFromGit(root: string, path: string) {
   const exclude = join(root, '.git', 'info', 'exclude');
@@ -143,7 +187,7 @@ function strip(settings: Settings) {
 }
 
 export async function hooksInstalled(root: string): Promise<boolean> {
-  for (const file of [...AGENTS.map((a) => a.file), ANTIGRAVITY_FILE, VSCODE_FILE]) {
+  for (const file of [...AGENTS.map((a) => a.file), ANTIGRAVITY_FILE, VSCODE_FILE, CURSOR_FILE]) {
     if (JSON.stringify(await read(join(root, file))).includes(MARKER)) return true;
   }
   return false;
@@ -172,6 +216,7 @@ export async function installHooks(context: vscode.ExtensionContext, root: strin
     installed.push(agent.name);
   }
   if (await installAntigravity(script, root)) installed.push('Antigravity');
+  if (await installCursor(script, root)) installed.push('Cursor');
   await installVsCode(script, root);
   installed.push('VS Code chat');
   return installed;
@@ -187,4 +232,5 @@ export async function uninstallHooks(root: string) {
   }
   await uninstallAntigravity(root);
   await fs.rm(join(root, VSCODE_FILE), { force: true });
+  await uninstallCursor(root);
 }

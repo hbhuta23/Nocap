@@ -10,6 +10,7 @@ import { toCodexCheckRequest } from '../src/adapters/codex';
 import { toGeminiCheckRequest, toGeminiOutput } from '../src/adapters/gemini';
 import { latestPrompt, toAntigravityCheckRequest, toAntigravityOutput } from '../src/adapters/antigravity';
 import { toVsCodeCheckRequest, toVsCodeOutput } from '../src/adapters/vscode';
+import { toCursorOutput, toCursorShellCheck, toCursorToolCheck } from '../src/adapters/cursor';
 import { patchEdits, pickEdit } from '../src/adapters/edits';
 import { checkedByHook, rememberHookCheck } from '../src/adapters/recent';
 import { isFollowUp } from '../src/sessions';
@@ -215,4 +216,25 @@ test('vscode: delete_file becomes an rm check; output carries both decision shap
   assert.equal(out.hookSpecificOutput.permissionDecision, 'deny');
   assert.equal(out.permissionDecision, 'deny');
   assert.match(out.permissionDecisionReason, /48,213/);
+});
+
+// ---------- Cursor (doc-shaped; edit tool names undocumented) ----------
+
+test('cursor: beforeShellExecution → bash check; conversation_id is the session', () => {
+  const c = toCursorShellCheck({ conversation_id: 'conv1', workspace_roots: ['/w'], command: 'rm -rf src', cwd: '/w/app' })!;
+  assert.deepEqual([c.agent, c.source, c.session_id, c.cwd, c.command], ['cursor', 'cursor_hook', 'conv1', '/w/app', 'rm -rf src']);
+});
+
+test('cursor: preToolUse maps edits by shape and skips shell tools (no double prompt)', () => {
+  const e = toCursorToolCheck({ conversation_id: 'c', workspace_roots: ['/w'], tool_name: 'edit_file', tool_input: { file_path: 'src/cart.test.ts', old_string: 'toBe(85)', new_string: 'toBe(90)' } })!;
+  assert.deepEqual([e.agent, e.tool, e.edit!.new], ['cursor', 'edit', 'toBe(90)']);
+  assert.equal(toCursorToolCheck({ tool_name: 'Shell', tool_input: { command: 'rm -rf src' } }), null);
+  assert.equal(toCursorToolCheck({ tool_name: 'run_terminal_cmd', tool_input: { command: 'ls' } }), null);
+});
+
+test('cursor output: {} to allow, {permission, user_message, agent_message} to block', () => {
+  assert.deepEqual(toCursorOutput(verdict({ verdict: 'allow' })), {});
+  const out = toCursorOutput(verdict({ verdict: 'block', headline: 'CAP DETECTED: 48,213 rows' })) as any;
+  assert.deepEqual([out.permission, out.user_message], ['deny', 'nocap: CAP DETECTED: 48,213 rows']);
+  assert.match(out.agent_message, /48,213 users/);
 });
