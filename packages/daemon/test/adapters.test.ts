@@ -9,6 +9,7 @@ import { toCheckRequest, toHookOutput } from '../src/adapters/claude';
 import { toCodexCheckRequest } from '../src/adapters/codex';
 import { toGeminiCheckRequest, toGeminiOutput } from '../src/adapters/gemini';
 import { latestPrompt, toAntigravityCheckRequest, toAntigravityOutput } from '../src/adapters/antigravity';
+import { toVsCodeCheckRequest, toVsCodeOutput } from '../src/adapters/vscode';
 import { patchEdits, pickEdit } from '../src/adapters/edits';
 import { checkedByHook, rememberHookCheck } from '../src/adapters/recent';
 import { isFollowUp } from '../src/sessions';
@@ -176,4 +177,42 @@ test('follow-ups and refinements do not replace the task; new instructions do', 
   for (const p of ['now fix the failing cart test please', 'clean up the test users', 'add embeddings for the new documents']) {
     assert.equal(isFollowUp(p), false, p);
   }
+});
+
+// ---------- VS Code chat / Copilot agent mode (doc-shaped; tool names undocumented) ----------
+
+test('vscode: run_in_terminal (snake_case payload) → bash check with the explanation as intent', () => {
+  const c = toVsCodeCheckRequest({ session_id: 's', cwd: '/w', tool_name: 'run_in_terminal', tool_input: { command: 'rm -rf src', explanation: 'Delete the src folder', isBackground: false } })!;
+  assert.deepEqual([c.agent, c.source, c.tool, c.command, c.intent], ['vscode-chat', 'vscode_hook', 'bash', 'rm -rf src', 'Delete the src folder']);
+});
+
+test('vscode: camelCase GitHub variant with toolArgs as a JSON string', () => {
+  const c = toVsCodeCheckRequest({ sessionId: 's2', cwd: '/w', toolName: 'run_in_terminal', toolArgs: JSON.stringify({ command: 'ls' }) })!;
+  assert.deepEqual([c.session_id, c.command], ['s2', 'ls']);
+});
+
+test('vscode: edits by shape: replace_string_in_file, multi_replace, create_file, and unknown tools', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'nocap-'));
+  writeFileSync(join(dir, 'cart.test.ts'), 'expect(applyDiscount(100)).toBe(85);\n');
+  const r = toVsCodeCheckRequest({ cwd: dir, tool_name: 'replace_string_in_file', tool_input: { filePath: join(dir, 'cart.test.ts'), oldString: 'toBe(85)', newString: 'toBe(90)' } })!;
+  assert.deepEqual([r.tool, r.edit!.new], ['edit', 'expect(applyDiscount(100)).toBe(90);\n']);
+  const m = toVsCodeCheckRequest({ cwd: dir, tool_name: 'multi_replace_string_in_file', tool_input: { filePath: 'cart.test.ts', replacements: [{ oldString: '85', newString: '80' }] } })!;
+  assert.match(m.edit!.new, /toBe\(80\)/);
+  const w = toVsCodeCheckRequest({ cwd: dir, tool_name: 'create_file', tool_input: { filePath: 'notes.md', content: 'hello' } })!;
+  assert.deepEqual([w.tool, w.edit!.new], ['write', 'hello']);
+  const unknown = toVsCodeCheckRequest({ cwd: dir, tool_name: 'some_future_edit_tool', tool_input: { filePath: 'a.ts', code: 'x' } })!;
+  assert.equal(unknown.tool, 'write');
+  const unknownShell = toVsCodeCheckRequest({ cwd: dir, tool_name: 'future_shell', tool_input: { command: 'rm -rf src' } })!;
+  assert.equal(unknownShell.command, 'rm -rf src');
+  assert.equal(toVsCodeCheckRequest({ cwd: dir, tool_name: 'read_file', tool_input: { filePath: 'a.ts', startLine: 1 } }), null);
+});
+
+test('vscode: delete_file becomes an rm check; output carries both decision shapes', () => {
+  const d = toVsCodeCheckRequest({ cwd: '/w', tool_name: 'delete_file', tool_input: { filePath: 'src/cart.ts' } })!;
+  assert.equal(d.command, 'rm /w/src/cart.ts');
+  assert.deepEqual(toVsCodeOutput(verdict({ verdict: 'allow' })), {});
+  const out = toVsCodeOutput(verdict({ verdict: 'block' })) as any;
+  assert.equal(out.hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal(out.permissionDecision, 'deny');
+  assert.match(out.permissionDecisionReason, /48,213/);
 });

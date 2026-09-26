@@ -5,6 +5,7 @@
 #   Codex CLI    .codex/hooks.json             nocap-hook.sh codex  pre-tool-use | user-prompt-submit
 #   Gemini CLI   .gemini/settings.json         nocap-hook.sh gemini before-tool  | before-agent
 #   Antigravity  .agents/hooks.json            nocap-hook.sh antigravity pre-tool-use | pre-invocation
+#   VS Code chat .github/hooks/nocap.json      nocap-hook.sh vscode pre-tool-use | user-prompt-submit
 # (Old form `nocap-hook.sh <event>` still means Claude Code.)
 # Forwards the raw hook JSON to the daemon and prints the daemon's reply in the agent's own format.
 

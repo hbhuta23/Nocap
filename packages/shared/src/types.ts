@@ -5,8 +5,8 @@
 
 export type Verdict = 'allow' | 'warn' | 'block' | 'ask';
 export type Category = 'data' | 'spend' | 'test_cheat' | 'secrets' | 'prod' | 'security' | 'rule' | 'safe';
-export type Source = 'shim' | 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'antigravity_hook' | 'commit_shim';
-export type AgentName = 'claude-code' | 'codex' | 'gemini-cli' | 'antigravity' | 'unknown';
+export type Source = 'shim' | 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'antigravity_hook' | 'vscode_hook' | 'commit_shim';
+export type AgentName = 'claude-code' | 'codex' | 'gemini-cli' | 'antigravity' | 'vscode-chat' | 'unknown';
 export type Tool = 'bash' | 'edit' | 'write';
 export type Severity = 'low' | 'medium' | 'high';
 export type VerdictMode = 'full' | 'rules_only';
@@ -68,7 +68,7 @@ export interface VerdictResponse {
 export interface TaskRequest {
   session_id: string;
   task: string;
-  source: 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'antigravity_hook' | 'panel' | 'cli';
+  source: 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'antigravity_hook' | 'vscode_hook' | 'panel' | 'cli';
 }
 
 export interface HumanIntentRequest {

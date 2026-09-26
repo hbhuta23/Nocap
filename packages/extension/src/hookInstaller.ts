@@ -88,6 +88,35 @@ async function installAntigravity(script: string, root: string): Promise<boolean
   return true;
 }
 
+// ---------- VS Code chat (Copilot agent mode) ----------
+// .github/hooks/*.json is on by default (`chat.useHooks`); our .claude/settings.local.json is only read when
+// the user enables `chat.useClaudeHooks`, so chat needs its own file. nocap owns the whole file. It is kept
+// out of git via .git/info/exclude (a committed hook would block teammates who don't run nocap).
+const VSCODE_FILE = '.github/hooks/nocap.json';
+
+async function installVsCode(script: string, root: string) {
+  const file = join(root, VSCODE_FILE);
+  await fs.mkdir(dirname(file), { recursive: true });
+  const config = {
+    version: 1,
+    hooks: {
+      PreToolUse: [{ type: 'command', command: `${script} vscode pre-tool-use`, timeoutSec: HOLD_SECONDS + 10 }],
+      UserPromptSubmit: [{ type: 'command', command: `${script} vscode user-prompt-submit`, timeoutSec: 10 }],
+    },
+  };
+  await fs.writeFile(file, JSON.stringify(config, null, 2) + '\n');
+  await excludeFromGit(root, VSCODE_FILE);
+}
+
+/** Adds a path to .git/info/exclude (a local, uncommitted .gitignore). No-op outside a git repo. */
+async function excludeFromGit(root: string, path: string) {
+  const exclude = join(root, '.git', 'info', 'exclude');
+  if (!existsSync(join(root, '.git'))) return;
+  await fs.mkdir(dirname(exclude), { recursive: true });
+  const current = existsSync(exclude) ? await fs.readFile(exclude, 'utf8') : '';
+  if (!current.split('\n').includes(path)) await fs.appendFile(exclude, `${current && !current.endsWith('\n') ? '\n' : ''}# nocap (local only)\n${path}\n`);
+}
+
 async function uninstallAntigravity(root: string) {
   const file = join(root, ANTIGRAVITY_FILE);
   if (!existsSync(file)) return;
@@ -114,7 +143,7 @@ function strip(settings: Settings) {
 }
 
 export async function hooksInstalled(root: string): Promise<boolean> {
-  for (const file of [...AGENTS.map((a) => a.file), ANTIGRAVITY_FILE]) {
+  for (const file of [...AGENTS.map((a) => a.file), ANTIGRAVITY_FILE, VSCODE_FILE]) {
     if (JSON.stringify(await read(join(root, file))).includes(MARKER)) return true;
   }
   return false;
@@ -143,6 +172,8 @@ export async function installHooks(context: vscode.ExtensionContext, root: strin
     installed.push(agent.name);
   }
   if (await installAntigravity(script, root)) installed.push('Antigravity');
+  await installVsCode(script, root);
+  installed.push('VS Code chat');
   return installed;
 }
 
@@ -155,4 +186,5 @@ export async function uninstallHooks(root: string) {
     await fs.writeFile(file, JSON.stringify(settings, null, 2) + '\n');
   }
   await uninstallAntigravity(root);
+  await fs.rm(join(root, VSCODE_FILE), { force: true });
 }
