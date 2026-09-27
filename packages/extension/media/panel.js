@@ -217,7 +217,10 @@
     if (input.value.trim()) vscode.postMessage({ type: 'set-task', task: input.value.trim() });
     input.value = '';
   };
-  $('task-input').onkeydown = (e) => e.key === 'Enter' && $('task-set').click();
+  // addEventListener, not onkeydown: an onkeydown handler that returns false cancels every keystroke.
+  $('task-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') $('task-set').click();
+  });
   $('rule-add').onclick = () => vscode.postMessage({ type: 'add-rule' });
   setInterval(() => (renderTask(), renderFeed()), 30_000); // refresh the "Xm ago" labels
 
