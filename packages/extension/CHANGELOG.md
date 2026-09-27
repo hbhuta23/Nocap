@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Icon: transparent rounded corners (no white edges)
+
 ## 0.1.0
 
 First release.

@@ -2,7 +2,7 @@
   "name": "nocap",
   "displayName": "nocap: Stop AI agents from capping",
   "description": "Checks what your AI coding agent is about to do before it does it: dry-runs SQL, estimates LLM spend, catches weakened tests, enforces your team rules, and makes you say what you expect before you approve. Works with Claude Code, Cursor, Codex, Gemini, Antigravity, VS Code chat and any terminal agent.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "HetanshBhuta",
   "license": "MIT",
   "icon": "media/icon.png",
