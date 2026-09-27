@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3
+
+- The approval card can be dragged by its header (double-click to re-centre) and reopens where you left it
+- Writing a file with a heredoc (`cat > notes.md <<EOF`) is no longer treated as running the text inside it
+- VS Code closed: risky actions are blocked at once with a clear reason, instead of waiting 5 minutes
+- Reopening VS Code shows approvals that are still waiting
+
 ## 0.1.2
 
 - Any AI provider for the judge: Gemini, Anthropic, OpenAI, OpenRouter, Groq or xAI, recognised from the key

@@ -9,7 +9,7 @@ import { checkKey } from '@nocap/judge';
 import type { CheckRequest, HealthResponse, HumanIntentRequest, TaskRequest } from '@nocap/shared';
 import { bus } from './bus';
 import { runCheck } from './pipeline';
-import { submitHumanIntent } from './humanCheck';
+import { pendingHumanChecks, submitHumanIntent } from './humanCheck';
 import { sessions } from './sessions';
 import { registerClaudeRoutes } from './adapters/claude';
 import { registerShimRoutes } from './adapters/shim';
@@ -64,6 +64,8 @@ export async function startServer(port = DAEMON_PORT) {
   app.get('/v1/stream', { websocket: true }, (socket) => {
     const off = bus.subscribe((event) => socket.send(JSON.stringify(event)));
     socket.on('close', off);
+    // A window that connects late still gets the pop-ups that are waiting (the extension ignores ones it already shows).
+    for (const event of pendingHumanChecks()) socket.send(JSON.stringify(event));
   });
 
   registerClaudeRoutes(app);

@@ -141,12 +141,55 @@
     }
   });
 
+  // Drag the card by its header; double-click the header to put it back in the centre.
+  let pos = { x: 0, y: 0 };
+  const place = () => (card.style.translate = `${pos.x}px ${pos.y}px`);
+  function clamp(x, y) {
+    const r = card.getBoundingClientRect();
+    const left = r.left - pos.x, top = r.top - pos.y; // where the card sits when centred
+    return {
+      x: Math.min(Math.max(x, -left), window.innerWidth - left - r.width),
+      y: Math.min(Math.max(y, -top), window.innerHeight - top - r.height),
+    };
+  }
+  card.addEventListener('pointerdown', (e) => {
+    const head = e.target.closest('.head');
+    if (!head || e.button !== 0) return;
+    e.preventDefault();
+    const start = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+    head.setPointerCapture(e.pointerId);
+    card.classList.add('dragging');
+    const move = (ev) => {
+      pos = clamp(ev.clientX - start.x, ev.clientY - start.y);
+      place();
+    };
+    const up = () => {
+      head.removeEventListener('pointermove', move);
+      head.removeEventListener('pointerup', up);
+      card.classList.remove('dragging');
+      vscode.postMessage({ type: 'moved', pos });
+    };
+    head.addEventListener('pointermove', move);
+    head.addEventListener('pointerup', up);
+  });
+  card.addEventListener('dblclick', (e) => {
+    if (!e.target.closest('.head')) return;
+    pos = { x: 0, y: 0 };
+    place();
+    vscode.postMessage({ type: 'moved', pos });
+  });
+
   let lastMismatch = null;
   window.addEventListener('message', ({ data: m }) => {
     busy = false;
     if (m.type === 'init') {
       ctx = m;
       openedAt = performance.now();
+      if (m.pos) {
+        pos = m.pos;
+        place();
+        requestAnimationFrame(() => ((pos = clamp(pos.x, pos.y)), place())); // the window may be smaller now
+      }
       renderAsk();
     } else if (m.type === 'refused') {
       renderAsk(m.message);

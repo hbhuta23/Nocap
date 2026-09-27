@@ -27,6 +27,10 @@ export const bus = {
     listeners.add(l);
     return () => listeners.delete(l);
   },
+  /** Connected stream clients (VS Code windows, panels). Zero means no one can see a pop-up. */
+  listenerCount() {
+    return listeners.size;
+  },
   /** Replayable history, oldest first. */
   recent() {
     return {

@@ -4,6 +4,8 @@
 // - one pop-up at a time, queued (overlapping pop-ups used to cancel each other)
 // - Decline, Escape and closing the tab all DECLINE: the daemon blocks the command at once and tells the agent
 // - when a check ends anywhere else (another window, the 5-minute timeout), its pop-up closes itself
+// - pop-ups still waiting when VS Code reopens are replayed by the daemon; duplicates are skipped
+// - the card can be dragged by its header (double-click to re-centre); the whole tab can be dragged to another group
 import * as vscode from 'vscode';
 import type { HumanIntentResponse, HumanOutcome, StreamEvent } from '@nocap/shared';
 import { daemon } from '../daemonClient';
@@ -20,6 +22,8 @@ const finished = new Set<string>();
 let current: { checkId: string; close: (message?: string) => void } | null = null;
 let draining = false;
 let extensionUri: vscode.Uri;
+/** Where the developer dragged the card, as an offset from the centre (reset by double-clicking its header). */
+let cardPos = { x: 0, y: 0 };
 
 export function initHumanIntent(uri: vscode.Uri) {
   extensionUri = uri;
@@ -27,6 +31,8 @@ export function initHumanIntent(uri: vscode.Uri) {
 
 /** Called for every `human.needed` stream event. */
 export function enqueueHumanIntent(e: HumanNeeded) {
+  // The daemon replays waiting pop-ups when the stream reconnects: skip ones already shown, queued or done.
+  if (finished.has(e.check_id) || current?.checkId === e.check_id || queue.some((q) => q.check_id === e.check_id)) return;
   queue.push(e);
   void drain();
 }
@@ -107,7 +113,10 @@ function ask(e: HumanNeeded): Promise<void> {
             category: e.category,
             agent: AGENTS[e.agent ?? 'unknown'] ?? 'An agent',
             logo: media('logo.svg'),
+            pos: cardPos,
           });
+        } else if (m.type === 'moved') {
+          cardPos = m.pos; // the next pop-up opens where the developer left this one
         } else if (m.type === 'decline') {
           await decline(e.check_id);
           finish(900);

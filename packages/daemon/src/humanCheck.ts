@@ -1,7 +1,7 @@
 // Human check flow (B14, FR-H1/H4–H6). Owner: Role B.
 // Holds /v1/check open, emits human.needed, waits for /v1/human-intent, asks the judge, releases the verdict.
 
-import type { CheckRequest, HumanIntentRequest, HumanIntentResponse, Judge, Measurement, NocapConfig, VerdictResponse, Category } from '@nocap/shared';
+import type { CheckRequest, HumanIntentRequest, HumanIntentResponse, Judge, Measurement, NocapConfig, VerdictResponse, Category, StreamEvent } from '@nocap/shared';
 import { refuseReflexAnswer } from '@nocap/shared';
 import { HUMAN_CHECK_TIMEOUT_MS, OVERRIDE_WINDOW_MS } from '@nocap/shared';
 import { bus } from './bus';
@@ -20,18 +20,40 @@ interface Pending {
   timer: NodeJS.Timeout;
 }
 
-const pending = new Map<string, Pending>();
+const pending = new Map<string, Pending & { event: HumanNeeded }>();
 
-export function holdForHuman(input: Omit<Pending, 'resolve' | 'timer'>): Promise<VerdictResponse> {
+type HumanNeeded = Extract<StreamEvent, { type: 'human.needed' }>;
+
+/** How long to wait for a VS Code window to connect (e.g. one that is still starting) before giving up. */
+const NO_WINDOW_GRACE_MS = 3_000;
+
+export async function holdForHuman(input: Omit<Pending, 'resolve' | 'timer'>): Promise<VerdictResponse> {
+  // Nobody can see a pop-up (VS Code is closed): say so now instead of holding the agent for the full timeout.
+  for (let waited = 0; bus.listenerCount() === 0 && waited < NO_WINDOW_GRACE_MS; waited += 250) await new Promise((r) => setTimeout(r, 250));
+  if (bus.listenerCount() === 0) {
+    bus.emit({ type: 'human.answered', check_id: input.check_id, outcome: 'timeout', at: Date.now() });
+    return {
+      ...input.response,
+      verdict: 'block',
+      reason_for_agent:
+        "Blocked by Nocap: this needs the developer's OK in Nocap's pop-up, but no VS Code window with Nocap is open. Tell the developer to open VS Code, then retry this exact command.",
+    };
+  }
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       pending.delete(input.check_id);
       bus.emit({ type: 'human.answered', check_id: input.check_id, outcome: 'timeout', at: Date.now() });
       resolve({ ...input.response, verdict: 'block', reason_for_agent: "Blocked by Nocap: the developer didn't confirm." });
     }, HUMAN_CHECK_TIMEOUT_MS);
-    pending.set(input.check_id, { ...input, resolve, timer });
-    bus.emit({ type: 'human.needed', check_id: input.check_id, agent: input.request.agent, command: input.request.command, task: input.task, category: input.category, at: Date.now() });
+    const event: HumanNeeded = { type: 'human.needed', check_id: input.check_id, agent: input.request.agent, command: input.request.command, task: input.task, category: input.category, at: Date.now() };
+    pending.set(input.check_id, { ...input, resolve, timer, event });
+    bus.emit(event);
   });
+}
+
+/** Pop-ups still waiting for an answer, replayed to a window that connects late (VS Code reopened, reloaded). */
+export function pendingHumanChecks(): HumanNeeded[] {
+  return [...pending.values()].map((p) => p.event);
 }
 
 export async function submitHumanIntent(body: HumanIntentRequest): Promise<HumanIntentResponse> {
