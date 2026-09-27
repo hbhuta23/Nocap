@@ -9,6 +9,7 @@ import { holdForHuman } from './humanCheck';
 import { measurers } from './measurers';
 import { applyPolicy } from './policy';
 import { rulesMentioned } from './rules';
+import { tamperTarget } from './guard';
 import { noteEdit } from './measurers/testDiff';
 import { sessions } from './sessions';
 
@@ -18,6 +19,21 @@ export async function runCheck(req: CheckRequest): Promise<VerdictResponse> {
   const started = Date.now();
   const check_id = `chk_${randomUUID()}`;
   bus.emit({ type: 'check.started', check_id, request: req, at: started });
+  // An agent may not change nocap's own setup (config, hook files, logs): blocked outright, no judge, no pop-up.
+  const tampered = tamperTarget(req);
+  if (tampered) {
+    const reason = `Blocked by nocap: agents can't change nocap's own files (${tampered}). Ask the developer; they can change nocap's settings in the nocap panel.`;
+    const response: VerdictResponse = {
+      check_id, verdict: 'block', category: 'security', headline: "CAP DETECTED: agent tried to change nocap's own setup",
+      facts: [{ label: 'Protected file', value: tampered, severity: 'high' }],
+      layers: { task_fit: { ok: true, why: 'Not judged: tamper protection' }, intent_effect: { ok: false, why: `Would change ${tampered}, which only the developer may change` } },
+      reason_for_agent: reason, mode: 'rules_only', latency_ms: Date.now() - started,
+    };
+    bus.emit({ type: 'check.finished', check_id, request: req, response, at: Date.now() });
+    await audit(req.cwd, { request: req, response, at: Date.now() });
+    return response;
+  }
+
   const classified = classify(req);
   const config = loadConfig(req.cwd);
   const task = sessions.getTask(req.session_id) ?? sessions.getTaskForWorkspace(req.cwd) ?? sessions.getTask('panel');

@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ruleKeywords, rulesMentioned } from '../src/rules';
 import { loadConfig } from '../src/config';
+import { tamperTarget } from '../src/guard';
 
 test('rule keywords keep the distinctive words, singularised', () => {
   assert.deepEqual(ruleKeywords('Never touch the payments table'), ['payment']);
@@ -52,4 +53,23 @@ test('.nocap.yml: missing or broken file falls back to defaults', () => {
   assert.deepEqual(loadConfig(dir).rules, []);
   writeFileSync(join(dir, '.nocap.yml'), 'rules: [unclosed');
   assert.equal(loadConfig(dir).human_check, 'risky');
+});
+
+// ---------- Tamper guard: agents can't change nocap's own setup ----------
+
+test("tamper guard: deleting or writing nocap's files is caught; reading and unrelated commands are not", () => {
+  const bash = (command: string) => ({ session_id: 's', source: 'shim' as const, agent: 'unknown' as const, cwd: '/w', tool: 'bash' as const, command, intent: null });
+  // seen live: an agent deleting the folder that holds the VS Code hook file
+  assert.equal(tamperTarget(bash('rm -rf .github')), '.github');
+  assert.equal(tamperTarget(bash('rm -rf ./.github/hooks/')), '.github/hooks');
+  assert.equal(tamperTarget(bash('rm /w/.nocap.yml')), '.nocap.yml');
+  assert.equal(tamperTarget(bash('mv .claude/settings.local.json /tmp/x')), '.claude/settings.local.json');
+  assert.equal(tamperTarget(bash("sed -i '' 's/rules//' .nocap.yml")), '.nocap.yml');
+  assert.equal(tamperTarget(bash('echo "{}" > .agents/hooks.json')), '.agents/hooks.json');
+  assert.equal(tamperTarget(bash('ls && rm -rf .cursor')), '.cursor');
+  const edit = { ...bash('edit .nocap.yml'), tool: 'edit' as const, edit: { file: '/w/.nocap.yml', old: 'a', new: 'b' } };
+  assert.equal(tamperTarget(edit), '.nocap.yml');
+  for (const ok of ['cat .nocap.yml', 'tail -n 20 .nocap.audit.jsonl', 'rm -rf src', 'rm -rf .github-old', 'rm -rf node_modules', 'git status', 'rm -rf .']) {
+    assert.equal(tamperTarget(bash(ok)), null, ok);
+  }
 });

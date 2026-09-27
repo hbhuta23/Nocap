@@ -49,6 +49,8 @@ read the last `<USER_REQUEST>` from the transcript file. Output `{decision: deny
 Parse check without running an agent: `cd <workspace> && agy agents`, then grep `hooks` in `~/.gemini/antigravity-cli/cli.log`.
 Workspace hooks load in 1.2.11 (the "workspace hooks ignored" bug was on 1.2.4), BUT **tool hooks never execute in 1.2.11**: a probe with no matcher, `""`, `".*"`, `"RunCommand"` and nocap's own matcher fired none of them, while `PreInvocation` works. The runtime log names the tool `RunCommand`, so the adapter accepts both name styles. Until Google fixes it, Antigravity is covered by the shims (commands + human pop-up), with the task borrowed from the workspace's latest agent prompt (`sessions.getTaskForWorkspace`).
 
+**VS Code chat hooks need a recent VS Code.** 1.108.1 contains no agent-hook code at all (verified), so chat hooks never fire there; commands are still caught by the shims, but chat file edits are not. `chat.useClaudeHooks` is off by default, which is why chat needs `.github/hooks/nocap.json`.
+
 No double checks: an agent's shell commands hit its hook AND the shims. Shims skip when `CLAUDECODE`
 is set, and for any agent the daemon remembers commands a hook let through for 60 s
 (`adapters/recent.ts`), so the shim answers `allow` without a second check or pop-up.
@@ -135,7 +137,8 @@ Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so 
 - Routing (`daemon/src/rules.ts`): risky actions are always judged with the rules. A **safe** action goes to the
   judge only if it mentions a rule keyword (local string match, e.g. "payment"), and is then stopped **only** for
   a broken rule, never for task fit. No keyword hit → the <50 ms path is untouched.
-- Override for a non-numeric block is typing `override`. Rules bind agents; the human pop-up path ignores them.
+- A broken rule is never released by an accurate pop-up description: the developer must type `override` (the pop-up names the rule). Rules bind agents only.
+- Tamper guard (`daemon/src/guard.ts`): agents may not delete, move or write nocap's own files (`.nocap.yml`, the hook files, the logs, or folders holding them, e.g. `rm -rf .github`); blocked in ~30 ms, no judge, no pop-up. Reads are allowed. Seen live: an agent deleting `.github`, another reading `.nocap.yml` and the audit log.
 - Eval: 5 rule cases (35 total), graded on verdict AND the quoted rule; rules that aren't broken count as false blocks.
 
 ## Invariants (never break these)

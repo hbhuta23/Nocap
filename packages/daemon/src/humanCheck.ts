@@ -56,7 +56,10 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
   }
   const check = pending.get(body.check_id);
   if (!check) return { accepted: false, message: 'This nocap check is no longer pending.' };
-  const confirmNumber = keyNumber(check.response.facts);
+  // A broken team rule is the team's standard, not a question of what the developer expects: describing the
+  // action correctly never unlocks it. Only an explicit "override" does (logged like any override).
+  const brokenRule = check.response.facts.find((f) => f.label === 'Team rule broken')?.value;
+  const confirmNumber = brokenRule ? 'override' : keyNumber(check.response.facts);
   if (body.confirm !== undefined) {
     // FR-H5: the typed number must match the key measured number (e.g. 48213 rows).
     const typed = /^\d+$/.test(confirmNumber) ? body.confirm.replace(/[^0-9]/g, '') : body.confirm.trim().toLowerCase();
@@ -81,13 +84,17 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
   const match = judged.mode === 'full' ? judged.intent_effect.ok : keywordMatch(answer, check.response.facts);
   await audit(check.request.cwd, { type: 'human_check', check_id: body.check_id, answer, ms_to_answer: body.ms_since_open, match, judge_mode: judged.mode, why: judged.intent_effect.why, at: Date.now() });
 
-  if (match) {
+  if (match && !brokenRule) {
     clear(check, 'match');
     check.resolve({ ...check.response, verdict: 'allow', human_confirmed: true, headline: 'Developer expectation matches measured effect', reason_for_agent: 'Allowed: the developer confirmed the measured effect.' });
     return { accepted: true, match: true };
   }
   bus.emit({ type: 'human.answered', check_id: body.check_id, outcome: 'mismatch', at: Date.now() });
-  const actual = judged.mode === 'full' ? judged.intent_effect.why : check.response.headline;
+  const actual = brokenRule
+    ? `it breaks your team rule "${brokenRule}"`
+    : judged.mode === 'full'
+      ? judged.intent_effect.why
+      : check.response.headline;
   return { accepted: true, match: false, mismatch: { expected: answer, actual, confirm_number: confirmNumber } };
 }
 

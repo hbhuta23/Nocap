@@ -76,7 +76,10 @@ async function askHumanIntent(e: HumanNeeded) {
 }
 
 async function confirmMismatch(e: HumanNeeded, title: string, m: NonNullable<HumanIntentResponse['mismatch']>) {
-  let message = `CAP DETECTED. You expected: ${m.expected}. This actually: ${m.actual}. Type ${m.confirm_number} to run it anyway (Escape = decline).`;
+  let message =
+    m.confirm_number === 'override'
+      ? `CAP DETECTED: ${m.actual}. Type "override" to run it anyway, or press Escape to decline.`
+      : `CAP DETECTED. You expected: ${m.expected}. This actually: ${m.actual}. Type ${m.confirm_number} to run it anyway (Escape = decline).`;
 
   for (;;) {
     const opened = Date.now();
