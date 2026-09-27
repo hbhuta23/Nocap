@@ -11,11 +11,11 @@ import { readFileSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
 import { Client } from 'pg';
 import { parse } from 'shell-quote';
-import { GeminiJudge, type SpendExtraction } from '@nocap/judge';
+import { LlmJudge, type SpendExtraction } from '@nocap/judge';
 import type { CheckRequest, Ctx, Fact, Measurement, Measurer } from '@nocap/shared';
 import prices from './prices.json';
 
-const judge = new GeminiJudge();
+const judge = new LlmJudge();
 
 const LLM_USE = /\b(openai|anthropic|google\.genai|google\.generativeai|@google\/genai|GoogleGenAI|cohere|voyageai|api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com)\b/i;
 const RUNNERS = new Set(['python', 'python3', 'node', 'tsx', 'bun', 'deno', 'ts-node']);

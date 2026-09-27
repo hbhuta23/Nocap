@@ -80,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // The judge's key comes from SecretStorage. A daemon started by another window gets it over localhost.
   const key = await getApiKey(context);
-  await daemonManager.start(key ? { GEMINI_API_KEY: key } : {});
+  await daemonManager.start(key ? { NOCAP_API_KEY: key } : {});
   if (key) await sendKeyToDaemon(key);
   stream.connect();
   statusBar.setNeedsKey(!key);

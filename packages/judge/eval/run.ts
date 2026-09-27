@@ -1,11 +1,11 @@
 // A18: `npm run eval` prints the judge score. Target 27/30, zero false blocks on safe cases.
-//   NOCAP_GEMINI_MODEL=gemini-3.5-flash-lite npm run eval   compare models
+//   NOCAP_MODEL=gemini-3.5-flash-lite npm run eval   compare models (any provider: set NOCAP_API_KEY)
 //   EVAL_VERBOSE=1 npm run eval                               print every headline and agent message
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { JudgeInput, Verdict } from '@nocap/shared';
 import { loadEnv } from '@nocap/shared';
-import { GeminiJudge } from '../src';
+import { LlmJudge } from '../src';
 
 loadEnv();
 
@@ -33,8 +33,9 @@ const CONCURRENCY = 4;
 async function main() {
   const cases: EvalCase[] = JSON.parse(readFileSync(join(__dirname, 'cases.json'), 'utf8'));
   const extractCases: ExtractCase[] = JSON.parse(readFileSync(join(__dirname, 'extract-cases.json'), 'utf8'));
-  const judge = new GeminiJudge();
-  console.log(`model: ${process.env.NOCAP_GEMINI_MODEL ?? 'gemini-flash-lite-latest (default)'}\n`);
+  const judge = new LlmJudge();
+  const ai = judge.client();
+  console.log(`provider: ${ai?.provider.name ?? 'none (no API key)'}, model: ${ai?.model ?? '-'}\n`);
 
   const results = await mapLimit(cases, CONCURRENCY, async (c) => {
     const started = Date.now();

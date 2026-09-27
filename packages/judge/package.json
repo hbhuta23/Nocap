@@ -9,8 +9,10 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@google/genai": "^2.24.0",
-    "@nocap/shared": "^0.0.1"
+    "@nocap/shared": "^0.0.1",
+    "openai": "^7.23.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

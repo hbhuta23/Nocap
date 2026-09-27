@@ -1,33 +1,35 @@
-// First run: install from the Marketplace → asked for a Gemini API key → every workspace protected automatically.
-// The key lives in VS Code SecretStorage (the OS keychain), never in a file, and is handed to the daemon.
+// First run: install from the Marketplace → asked for an API key (Gemini, Anthropic, OpenAI, …) → every workspace
+// protected automatically. The key lives in VS Code SecretStorage (the OS keychain), never in a file, and is handed to the daemon.
 import * as vscode from 'vscode';
+import { detectProvider } from '@nocap/shared';
 import { daemon } from './daemonClient';
 
+// The secret's id predates multi-provider support; kept so saved keys still load.
 const KEY_SECRET = 'nocap.geminiApiKey';
+/** Gemini has a free tier, so it's the key we point new users to. */
 const KEY_URL = 'https://aistudio.google.com/apikey';
+const PROVIDER_LIST = 'Gemini, Anthropic, OpenAI, OpenRouter, Groq or xAI';
 
 export async function getApiKey(context: vscode.ExtensionContext): Promise<string | undefined> {
   return context.secrets.get(KEY_SECRET);
 }
 
-/** A real request, so a typo'd or revoked key is caught before it's saved. */
-async function keyWorks(key: string): Promise<boolean> {
+/** The daemon asks the provider (a real request), so a typo'd or revoked key is caught before it's saved. */
+async function checkKey(key: string): Promise<{ ok: boolean; provider?: string; error?: string }> {
   try {
-    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', {
-      headers: { 'x-goog-api-key': key },
-      signal: AbortSignal.timeout(8000),
-    });
-    return res.ok;
+    return await daemon.post('/v1/key/check', { api_key: key });
   } catch {
-    return false;
+    // Daemon unreachable: accept any key whose provider we recognise; the judge will report a bad one later.
+    const provider = detectProvider(key);
+    return provider ? { ok: true, provider: provider.name } : { ok: false, error: `Use a key from ${PROVIDER_LIST}.` };
   }
 }
 
 /** Ask for the key, check it, store it, and give it to the running daemon. Returns true when saved. */
 export async function promptForApiKey(context: vscode.ExtensionContext): Promise<boolean> {
   const key = await vscode.window.showInputBox({
-    title: 'nocap: Gemini API key',
-    prompt: `nocap's judge uses Gemini to compare what the agent says with what a command really does. Get a free key at ${KEY_URL}`,
+    title: 'Nocap: AI API key',
+    prompt: `Nocap's judge compares what the agent says with what a command really does. Paste a key from ${PROVIDER_LIST}. Gemini has a free tier: ${KEY_URL}`,
     placeHolder: 'Paste your key',
     password: true,
     ignoreFocusOut: true,
@@ -35,34 +37,36 @@ export async function promptForApiKey(context: vscode.ExtensionContext): Promise
   });
   if (!key) return false;
 
-  const ok = await vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: 'nocap: checking your key…' },
-    () => keyWorks(key.trim()),
+  const result = await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: 'Nocap: checking your key…' },
+    () => checkKey(key.trim()),
   );
-  if (!ok) {
-    const again = await vscode.window.showErrorMessage('nocap: Google rejected that key (or it could not be reached).', 'Try again', 'Get a key');
-    if (again === 'Get a key') void vscode.env.openExternal(vscode.Uri.parse(KEY_URL));
+  if (!result.ok) {
+    const who = result.provider ? `${result.provider} rejected that key (or couldn't be reached).` : result.error ?? 'That key was rejected.';
+    const again = await vscode.window.showErrorMessage(`Nocap: ${who}`, 'Try again', 'Get a free Gemini key');
+    if (again === 'Get a free Gemini key') void vscode.env.openExternal(vscode.Uri.parse(KEY_URL));
     return again === 'Try again' ? promptForApiKey(context) : false;
   }
 
   await context.secrets.store(KEY_SECRET, key.trim());
   await sendKeyToDaemon(key.trim());
+  vscode.window.showInformationMessage(`Nocap: using ${result.provider ?? 'your key'} for the judge.`);
   return true;
 }
 
 export async function sendKeyToDaemon(key: string) {
-  await daemon.post('/v1/key', { gemini_api_key: key }).catch(() => undefined);
+  await daemon.post('/v1/key', { api_key: key }).catch(() => undefined);
 }
 
 /** First activation without a key: a welcome that leads straight to the key prompt. */
 export async function welcome(context: vscode.ExtensionContext): Promise<boolean> {
   const choice = await vscode.window.showInformationMessage(
-    'Welcome to nocap. It checks what your AI agents are about to do before they do it, in the chat and in the terminal. Add a Gemini API key to turn it on.',
+    `Welcome to Nocap. It checks what your AI agents are about to do before they do it, in the chat and in the terminal. Add an API key (${PROVIDER_LIST}) to turn it on.`,
     'Add API key',
-    'Get a free key',
+    'Get a free Gemini key',
     'Later',
   );
-  if (choice === 'Get a free key') {
+  if (choice === 'Get a free Gemini key') {
     void vscode.env.openExternal(vscode.Uri.parse(KEY_URL));
     return promptForApiKey(context);
   }

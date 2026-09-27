@@ -17,7 +17,7 @@ export class StatusBar implements vscode.Disposable {
     this.render();
   }
 
-  /** Without a Gemini key nocap still runs on rules and measurements; the status bar offers the key prompt. */
+  /** Without an API key nocap still runs on rules and measurements; the status bar offers the key prompt. */
   setNeedsKey(needsKey: boolean) {
     this.needsKey = needsKey;
     this.render();
@@ -33,7 +33,7 @@ export class StatusBar implements vscode.Disposable {
     }
     this.item.backgroundColor = this.needsKey ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
     this.item.text = this.needsKey ? '$(shield) nocap: add key' : `$(shield) nocap: ${this.status}`;
-    this.item.tooltip = this.needsKey ? 'Add a Gemini API key to turn on the judge (rules and measurements work without it).' : 'Open the nocap panel';
+    this.item.tooltip = this.needsKey ? 'Add an AI API key to turn on the judge (rules and measurements work without it).' : 'Open the nocap panel';
     this.item.command = this.needsKey ? 'nocap.setApiKey' : 'nocap.openPanel';
   }
 

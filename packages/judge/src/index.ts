@@ -1,13 +1,14 @@
-// Gemini judge (A12). Owner: Role A.
+// The judge (A12). Owner: Role A. Gemini by default; any provider whose key the user gives (providers.ts).
 // One call: task + intent + measured facts in, schema-checked JSON out.
 // Any timeout or error falls back to rules only (FR-G5).
 
-import { GoogleGenAI, Type } from '@google/genai';
+import { Type } from '@google/genai';
 import type { Judge, JudgeInput, JudgeResult } from '@nocap/shared';
 import { JUDGE_TIMEOUT_MS } from '@nocap/shared';
 import { buildPrompt } from './prompts';
 import { buildSpendExtractionPrompt, SPEND_EXTRACTION_SCHEMA, type SpendExtraction } from './prompts/spend';
 import { redact } from './redact';
+import { currentKey, errorStatus, makeClient, type JsonClient } from './providers';
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
@@ -30,7 +31,7 @@ const RESPONSE_SCHEMA = {
   required: ['task_fit', 'intent_effect', 'suggested_verdict', 'headline', 'reason_for_agent'],
 };
 
-export interface GeminiJudgeOptions {
+export interface LlmJudgeOptions {
   apiKey?: string;
   model?: string;
   timeoutMs?: number;
@@ -38,29 +39,24 @@ export interface GeminiJudgeOptions {
   redactColumns?: string[];
 }
 
-export class GeminiJudge implements Judge {
-  private ai: GoogleGenAI | null = null;
+export class LlmJudge implements Judge {
+  private ai: JsonClient | null = null;
+  private aiKey: string | undefined;
 
-  constructor(private opts: GeminiJudgeOptions = {}) {}
+  constructor(private opts: LlmJudgeOptions = {}) {}
 
   // Settings are read on each call, not in the constructor: the daemon's pipeline builds its judge
   // at import time, before server.ts has loaded .env.
-  private get model() {
-    return this.opts.model ?? process.env.NOCAP_GEMINI_MODEL ?? 'gemini-flash-lite-latest';
-  }
-
   private get timeoutMs() {
     return this.opts.timeoutMs ?? Number(process.env.NOCAP_JUDGE_TIMEOUT_MS ?? JUDGE_TIMEOUT_MS);
   }
 
-  private aiKey: string | undefined;
-
   /** Rebuilt when the key changes (the extension can hand the daemon a new key at runtime). */
-  private client(): GoogleGenAI | null {
-    const apiKey = this.opts.apiKey ?? process.env.GEMINI_API_KEY;
+  client(): JsonClient | null {
+    const apiKey = this.opts.apiKey ?? currentKey();
     if (!apiKey) return null;
     if (!this.ai || this.aiKey !== apiKey) {
-      this.ai = new GoogleGenAI({ apiKey });
+      this.ai = makeClient(apiKey, this.opts.model);
       this.aiKey = apiKey;
     }
     return this.ai;
@@ -84,26 +80,21 @@ export class GeminiJudge implements Judge {
     return result.ok ? result.value : null;
   }
 
-  /** One Gemini JSON call. A17: one retry for transient errors (503 overloaded, 429 rate limit). */
+  /** One JSON call to the provider. A17: one retry for transient errors (503 overloaded, 429 rate limit). */
   private async generate<T>(prompt: string, schema: object): Promise<{ ok: true; value: T } | { ok: false; error: string }> {
     const ai = this.client();
-    if (!ai) return { ok: false, error: 'no GEMINI_API_KEY set' };
+    if (!ai) return { ok: false, error: currentKey() ? 'unrecognised API key' : 'no API key set' };
 
     let error = '';
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const res = await withTimeout(
-          ai.models.generateContent({
-            model: this.model,
-            contents: prompt,
-            config: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0 },
-          }),
-          this.timeoutMs,
-        );
-        return { ok: true, value: JSON.parse(res.text ?? '{}') as T };
+        const text = await withTimeout(ai.generate(prompt, schema, this.timeoutMs), this.timeoutMs);
+        return { ok: true, value: JSON.parse(text) as T };
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
-        if (!/\b(503|429|UNAVAILABLE|RESOURCE_EXHAUSTED)\b/.test(error)) break;
+        const status = errorStatus(err);
+        const transient = status === 429 || (status !== undefined && status >= 500) || /\b(503|529|429|UNAVAILABLE|RESOURCE_EXHAUSTED|overloaded)\b/i.test(error);
+        if (!transient) break;
       }
     }
     return { ok: false, error };
@@ -133,4 +124,7 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 export { redact } from './redact';
+export { checkKey, toJsonSchema } from './providers';
+/** Old name, kept for existing callers. */
+export const GeminiJudge = LlmJudge;
 export type { SpendExtraction } from './prompts/spend';

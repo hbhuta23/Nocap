@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { GeminiJudge } from '@nocap/judge';
+import { LlmJudge } from '@nocap/judge';
 import type { Category, CheckRequest, JudgeResult, Measurement, VerdictResponse } from '@nocap/shared';
 import { bus } from './bus';
 import { audit } from './audit';
@@ -13,7 +13,7 @@ import { tamperTarget } from './guard';
 import { noteEdit } from './measurers/testDiff';
 import { sessions } from './sessions';
 
-const judge = new GeminiJudge();
+const judge = new LlmJudge();
 
 export async function runCheck(req: CheckRequest): Promise<VerdictResponse> {
   const started = Date.now();

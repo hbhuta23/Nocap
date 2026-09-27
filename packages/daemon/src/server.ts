@@ -4,7 +4,8 @@
 import Fastify from 'fastify';
 import formbody from '@fastify/formbody';
 import websocket from '@fastify/websocket';
-import { BUILD_ID, DAEMON_HOST, DAEMON_PORT, loadEnv } from '@nocap/shared';
+import { BUILD_ID, DAEMON_HOST, DAEMON_PORT, detectProvider, loadEnv } from '@nocap/shared';
+import { checkKey } from '@nocap/judge';
 import type { CheckRequest, HealthResponse, HumanIntentRequest, TaskRequest } from '@nocap/shared';
 import { bus } from './bus';
 import { runCheck } from './pipeline';
@@ -48,14 +49,17 @@ export async function startServer(port = DAEMON_PORT) {
 
   app.post<{ Body: HumanIntentRequest }>('/v1/human-intent', async (req) => submitHumanIntent(req.body));
 
-  // The extension hands over the Gemini key from VS Code SecretStorage (localhost only; never written to disk).
-  // The judge reads it on its next call.
-  app.post<{ Body: { gemini_api_key?: string } }>('/v1/key', async (req) => {
-    const key = req.body?.gemini_api_key?.trim();
+  // The extension hands over the judge's API key from VS Code SecretStorage (localhost only; never written to disk).
+  // Any provider (shared/providers.ts); the judge reads it on its next call. `gemini_api_key` is the old field name.
+  app.post<{ Body: { api_key?: string; gemini_api_key?: string } }>('/v1/key', async (req) => {
+    const key = (req.body?.api_key ?? req.body?.gemini_api_key)?.trim();
     if (!key) return { ok: false };
-    process.env.GEMINI_API_KEY = key;
-    return { ok: true };
+    process.env.NOCAP_API_KEY = key;
+    return { ok: true, provider: detectProvider(key)?.name ?? null };
   });
+
+  // Checks a key with its provider before the extension saves it.
+  app.post<{ Body: { api_key?: string } }>('/v1/key/check', async (req) => checkKey(req.body?.api_key?.trim() ?? ''));
 
   app.get('/v1/stream', { websocket: true }, (socket) => {
     const off = bus.subscribe((event) => socket.send(JSON.stringify(event)));
