@@ -59,7 +59,10 @@
       {
         "command": "nocap.menu",
         "title": "nocap",
-        "icon": "$(shield)"
+        "icon": {
+          "light": "media/logo.svg",
+          "dark": "media/logo.svg"
+        }
       },
       {
         "command": "nocap.addRule",
@@ -124,5 +127,6 @@
     "@types/ws": "^8.18.1",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2"
-  }
+  },
+  "icon": "media/icon.png"
 }

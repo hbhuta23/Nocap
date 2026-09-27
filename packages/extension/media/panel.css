@@ -29,7 +29,7 @@ input { font: inherit; }
 /* ---------- header ---------- */
 .top { display: flex; justify-content: space-between; align-items: center; }
 .brand { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
-.brand svg { width: 20px; height: 20px; color: var(--accent); }
+.brand img { width: 20px; height: 20px; border-radius: 5px; display: block; }
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; padding: 3px 9px 3px 8px; border-radius: 999px; color: var(--ok); background: color-mix(in srgb, var(--ok) 13%, transparent); }
 .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: pulse 2.4s infinite; }
 .status.offline { color: var(--danger); background: color-mix(in srgb, var(--danger) 13%, transparent); }

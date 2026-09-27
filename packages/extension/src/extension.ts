@@ -98,6 +98,22 @@ export async function activate(context: vscode.ExtensionContext) {
   if (workspaceRoot && autoProtect && !context.workspaceState.get<boolean>(DISABLED)) await protect(false);
   else if (workspaceRoot && (await hooksInstalled(workspaceRoot))) await installHooks(context, workspaceRoot);
 
+  // Chat hooks need a recent VS Code (1.108 has none). Detect the feature itself, not a version number:
+  // the chat.useHooks setting only exists where chat hooks do. Cursor has its own hooks, so it's skipped.
+  const chatHooks = vscode.workspace.getConfiguration('chat').inspect('useHooks');
+  const isCursor = vscode.env.appName.toLowerCase().includes('cursor');
+  if (!isCursor && chatHooks?.defaultValue === undefined && !context.globalState.get<boolean>('nocap.oldVsCodeNotice')) {
+    await context.globalState.update('nocap.oldVsCodeNotice', true);
+    vscode.window
+      .showWarningMessage(
+        `nocap: this VS Code (${vscode.version}) can't send chat actions to nocap yet. Commands the chat runs are still checked, but its file edits aren't. Update VS Code to protect those too.`,
+        'Check for updates',
+      )
+      .then((c) => {
+        if (c) void vscode.commands.executeCommand('update.checkForUpdate');
+      });
+  }
+
   // First run: welcome → API key.
   if (!key && !context.globalState.get<boolean>('nocap.welcomed')) {
     await context.globalState.update('nocap.welcomed', true);
