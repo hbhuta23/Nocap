@@ -29,7 +29,7 @@ function globToRegex(glob: string): RegExp {
   return new RegExp(`^${re}$`);
 }
 
-/** "Source" means code, not config, docs or nocap's own logs. */
+/** "Source" means code, not config, docs or Nocap's own logs. */
 const CODE_FILE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rb|java|kt|rs|c|cc|cpp|h|cs|php|swift|scala|vue|svelte|sql)$/;
 
 export function isTestFile(file: string, cwd: string, globs: string[] = DEFAULT_TEST_GLOBS): boolean {

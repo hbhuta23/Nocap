@@ -158,7 +158,7 @@ export async function measureSpend(req: CheckRequest, ctx: Ctx): Promise<Measure
     counted = { items: src.count, sampleTexts: [] };
     sourceText = `${src.kind} of ${src.count}`;
   } else {
-    return cantEstimate('the number of items comes from something nocap cannot count (for example an API it pages through)', { provider: x.provider, loop_source: 'unknown' });
+    return cantEstimate('the number of items comes from something Nocap cannot count (for example an API it pages through)', { provider: x.provider, loop_source: 'unknown' });
   }
   if (typeof counted === 'string') return cantEstimate(counted, { provider: x.provider, loop_source: sourceText });
 

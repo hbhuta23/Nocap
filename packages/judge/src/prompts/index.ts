@@ -7,7 +7,7 @@ import { humanPrompt } from './human';
 import { spendPrompt } from './spend';
 import { testCheatPrompt } from './testCheat';
 
-const base = (speaker: string) => `You are nocap, a safety judge for AI coding agents.
+const base = (speaker: string) => `You are Nocap, a safety judge for AI coding agents.
 You compare three layers:
 1. TASK: what the developer asked the agent to do.
 2. INTENT: what the ${speaker} says this action is for.

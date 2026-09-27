@@ -1,12 +1,12 @@
-// Tamper guard: an agent may not change nocap's own setup. Owner: Role A.
+// Tamper guard: an agent may not change Nocap's own setup. Owner: Role A.
 // Seen live: an agent ran `rm -rf .github` (which holds .github/hooks/nocap.json) while being checked.
-// Deleting, moving or writing nocap's config, hook files or logs is blocked outright, no pop-up: the developer
-// changes them in the nocap panel or by hand, never through an agent. Reads stay allowed.
+// Deleting, moving or writing Nocap's config, hook files or logs is blocked outright, no pop-up: the developer
+// changes them in the Nocap panel or by hand, never through an agent. Reads stay allowed.
 import { isAbsolute, normalize, relative } from 'node:path';
 import { parse } from 'shell-quote';
 import type { CheckRequest } from '@nocap/shared';
 
-/** nocap's files, relative to the workspace. */
+/** Nocap's files, relative to the workspace. */
 export const NOCAP_FILES = [
   '.nocap.yml',
   '.nocap.audit.jsonl',
@@ -26,14 +26,14 @@ function rel(cwd: string, p: string): string {
   return r.replace(/^\.\//, '').replace(/\/+$/, '');
 }
 
-/** True when `path` is a nocap file or a folder containing one (deleting `.github` removes the hook file). */
+/** True when `path` is a Nocap file or a folder containing one (deleting `.github` removes the hook file). */
 function coversNocapFile(cwd: string, path: string): string | null {
   const p = rel(cwd, path);
   if (!p || p === '.' || p.startsWith('..')) return null; // whole-workspace or outside targets are other checks' business
   return NOCAP_FILES.find((f) => f === p || f.startsWith(p + '/')) ?? null;
 }
 
-/** The nocap file this action would change, or null. */
+/** The Nocap file this action would change, or null. */
 export function tamperTarget(req: CheckRequest): string | null {
   if (req.edit) return coversNocapFile(req.cwd, req.edit.file) && rel(req.cwd, req.edit.file);
 
@@ -42,7 +42,7 @@ export function tamperTarget(req: CheckRequest): string | null {
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (typeof t !== 'string') {
-      // Redirection into a nocap file: `echo x > .nocap.yml`, `>> .claude/settings.local.json`
+      // Redirection into a Nocap file: `echo x > .nocap.yml`, `>> .claude/settings.local.json`
       if ('op' in t && (t.op === '>' || t.op === '>>')) {
         const target = tokens[i + 1];
         if (typeof target === 'string' && coversNocapFile(req.cwd, target)) return rel(req.cwd, target);

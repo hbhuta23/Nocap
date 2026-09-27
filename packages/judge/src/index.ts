@@ -108,7 +108,7 @@ export function rulesOnly(_input: JudgeInput, why: string): JudgeResult {
     intent_effect: { ok: true, why: `judge unavailable (${why})` },
     suggested_verdict: 'ask',
     headline: 'Checked by rules only',
-    reason_for_agent: 'nocap could not reach its judge; this action needs the developer to confirm.',
+    reason_for_agent: 'Nocap could not reach its judge; this action needs the developer to confirm.',
     mode: 'rules_only',
   };
 }

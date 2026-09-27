@@ -92,10 +92,10 @@ export function toAntigravityCheckRequest(p: AntigravityPreToolUse): CheckReques
   }
 }
 
-/** No decision = Antigravity's normal flow; "allow" only after the developer confirmed in nocap (FR-H5). */
+/** No decision = Antigravity's normal flow; "allow" only after the developer confirmed in Nocap (FR-H5). */
 export function toAntigravityOutput(v: VerdictResponse) {
   if (v.verdict === 'allow' || v.verdict === 'warn') {
-    return v.human_confirmed ? { decision: 'allow', reason: 'Confirmed by the developer in nocap' } : {};
+    return v.human_confirmed ? { decision: 'allow', reason: 'Confirmed by the developer in Nocap' } : {};
   }
   return { decision: v.verdict === 'ask' ? 'ask' : 'deny', reason: v.reason_for_agent };
 }

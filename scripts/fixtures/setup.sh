@@ -59,7 +59,7 @@ cat > .gemini/settings.json <<EOF
 }
 EOF
 
-# Shim probe wrappers (same binaries nocap shims, plus a few to learn about).
+# Shim probe wrappers (same binaries Nocap shims, plus a few to learn about).
 for b in rm git psql python python3 node curl; do
   printf '#!/bin/bash\nexec "%s" %s "$@"\n' "$PROBE" "$b" > ".nocap-probe-bin/$b"
 done

@@ -59,7 +59,7 @@ export interface VerdictResponse {
   reason_for_agent: string;
   mode: VerdictMode;
   latency_ms: number;
-  /** The developer approved this in nocap's pop-up, so hooks answer "allow" and the agent doesn't ask again (FR-H5). */
+  /** The developer approved this in Nocap's pop-up, so hooks answer "allow" and the agent doesn't ask again (FR-H5). */
   human_confirmed?: boolean;
 }
 

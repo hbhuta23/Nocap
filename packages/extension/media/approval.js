@@ -1,4 +1,4 @@
-// nocap approval pop-up (FR-H1..H5). Agent-supplied text is only ever set with textContent.
+// Nocap approval pop-up (FR-H1..H5). Agent-supplied text is only ever set with textContent.
 (function () {
   const vscode = acquireVsCodeApi();
   const card = document.getElementById('card');
@@ -32,7 +32,7 @@
 
   function renderAsk(errorText) {
     card.className = 'card';
-    card.replaceChildren(header('nocap needs your OK', `${ctx.agent} wants to run this`, ctx.logo));
+    card.replaceChildren(header('Nocap needs your OK', `${ctx.agent} wants to run this`, ctx.logo));
     card.append(el('div', 'label', 'Command'), el('pre', 'command', ctx.command));
     if (ctx.task) card.append(el('div', 'label', 'Your task'), el('div', 'task', ctx.task));
     card.append(el('div', 'question', 'What do you expect this to do?'));
@@ -40,7 +40,7 @@
     box.placeholder = 'In your own words, e.g. "delete the QA test accounts"';
     const err = el('div', 'error', errorText || '');
     const actions = el('div', 'actions');
-    const hint = el('span', 'hint', 'nocap compares your answer with what the command really does.');
+    const hint = el('span', 'hint', 'Nocap compares your answer with what the command really does.');
     const buttons = el('div', 'buttons');
     const decline = el('button', 'secondary', 'Decline');
     decline.append(kbd('Esc'));
@@ -105,7 +105,7 @@
 
   function renderState(kind, text) {
     card.className = 'card' + (kind === 'ok' ? ' ok' : kind === 'no' ? ' cap' : '');
-    card.replaceChildren(header('nocap', ctx ? ctx.command : '', ctx && ctx.logo));
+    card.replaceChildren(header('Nocap', ctx ? ctx.command : '', ctx && ctx.logo));
     const s = el('div', 'state');
     if (kind === 'wait') s.append(el('div', 'spinner'));
     s.append(document.createTextNode(text));

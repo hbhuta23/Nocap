@@ -1,4 +1,4 @@
-// Where nocap keeps its local logs: ~/.nocap/logs/<project>-<id>/, never inside the user's repo
+// Where Nocap keeps its local logs: ~/.nocap/logs/<project>-<id>/, never inside the user's repo
 // (with auto-protect, a file in every project would end up in commits). Override with NOCAP_HOME.
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';

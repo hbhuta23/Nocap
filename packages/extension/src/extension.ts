@@ -1,4 +1,4 @@
-// nocap VS Code extension entry point. Owner: Role A (panel/ is Role B).
+// Nocap VS Code extension entry point. Owner: Role A (panel/ is Role B).
 import * as vscode from 'vscode';
 import { DaemonManager } from './daemonManager';
 import { StatusBar } from './statusBar';
@@ -12,7 +12,7 @@ import { daemon } from './daemonClient';
 import { manageRules, promptAddRule, readRules } from './rules';
 import { getApiKey, promptForApiKey, sendKeyToDaemon, welcome } from './onboarding';
 
-const noFolder = () => vscode.window.showErrorMessage('nocap: open a folder first.');
+const noFolder = () => vscode.window.showErrorMessage('Nocap: open a folder first.');
 
 export async function activate(context: vscode.ExtensionContext) {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -43,12 +43,12 @@ export async function activate(context: vscode.ExtensionContext) {
       if (workspaceRoot) await uninstallHooks(workspaceRoot);
       disableShims(context);
       await context.workspaceState.update(DISABLED, true); // stays off here, even with auto-protect
-      vscode.window.showInformationMessage('nocap is off for this workspace. Run "nocap: Enable in this workspace" to turn it back on.');
+      vscode.window.showInformationMessage('Nocap is off for this workspace. Run "Nocap: Enable in this workspace" to turn it back on.');
     }),
     vscode.commands.registerCommand('nocap.setApiKey', async () => {
       if (await promptForApiKey(context)) {
         statusBar.setNeedsKey(false);
-        vscode.window.showInformationMessage('nocap: key saved. The judge is on.');
+        vscode.window.showInformationMessage('Nocap: key saved. The judge is on.');
       }
     }),
     vscode.commands.registerCommand('nocap.setTask', async (providedTask?: string) => {
@@ -66,15 +66,15 @@ export async function activate(context: vscode.ExtensionContext) {
       const items = [
         { label: `$(law) Team rules (${rules.length})`, detail: rules.length ? rules.slice(0, 3).join(' · ') : 'Standards the AI must never break', command: 'nocap.manageRules' },
         { label: '$(add) Add a team rule', command: 'nocap.addRule' },
-        { label: '$(shield) Open the nocap panel', command: 'nocap.openPanel' },
+        { label: '$(shield) Open the Nocap panel', command: 'nocap.openPanel' },
         { label: "$(edit) Set the agent's task", command: 'nocap.setTask' },
       ];
-      const picked = await vscode.window.showQuickPick(items, { title: 'nocap' });
+      const picked = await vscode.window.showQuickPick(items, { title: 'Nocap' });
       if (picked) await vscode.commands.executeCommand(picked.command);
     }),
     vscode.commands.registerCommand('nocap.relaunchTerminals', () => {
       // TODO(A8): don't kill terminals with a running agent; offer to open a fresh one instead.
-      vscode.window.createTerminal('nocap').show();
+      vscode.window.createTerminal('Nocap').show();
     }),
   );
 
@@ -88,7 +88,7 @@ export async function activate(context: vscode.ExtensionContext) {
   if (process.platform === 'win32') {
     if (!context.globalState.get('nocap.windowsNotice')) {
       await context.globalState.update('nocap.windowsNotice', true);
-      vscode.window.showWarningMessage('nocap runs on macOS and Linux for now. Windows support is on the way.');
+      vscode.window.showWarningMessage('Nocap runs on macOS and Linux for now. Windows support is on the way.');
     }
     return;
   }
@@ -107,7 +107,7 @@ export async function activate(context: vscode.ExtensionContext) {
     await context.globalState.update('nocap.oldVsCodeNotice', true);
     vscode.window
       .showWarningMessage(
-        `nocap: this VS Code (${vscode.version}) can't send chat actions to nocap yet. Commands the chat runs are still checked, but its file edits aren't. Update VS Code to protect those too.`,
+        `Nocap: this VS Code (${vscode.version}) can't send chat actions to Nocap yet. Commands the chat runs are still checked, but its file edits aren't. Update VS Code to protect those too.`,
         'Check for updates',
       )
       .then((c) => {
@@ -120,7 +120,7 @@ export async function activate(context: vscode.ExtensionContext) {
     await context.globalState.update('nocap.welcomed', true);
     if (await welcome(context)) {
       statusBar.setNeedsKey(false);
-      vscode.window.showInformationMessage("nocap is on. Your agents' risky actions will be checked before they run.", 'Open panel').then((c) => {
+      vscode.window.showInformationMessage("Nocap is on. Your agents' risky actions will be checked before they run.", 'Open panel').then((c) => {
         if (c) void vscode.commands.executeCommand('nocap.openPanel');
       });
     }
@@ -137,7 +137,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const codexNote = agents.includes('Codex') ? ' In Codex, run /hooks once to trust them.' : '';
     vscode.window
       .showInformationMessage(
-        `nocap is protecting ${agents.join(', ')} and any agent in the terminal. Restart agents that were already running.${codexNote}`,
+        `Nocap is protecting ${agents.join(', ')} and any agent in the terminal. Restart agents that were already running.${codexNote}`,
         'Open panel',
       )
       .then((c) => {

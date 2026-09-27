@@ -1,7 +1,7 @@
 {
   "name": "shop-app",
   "private": true,
-  "description": "nocap demo app: a cart with a discount bug, a users table, and an embedding backfill script.",
+  "description": "Nocap demo app: a cart with a discount bug, a users table, and an embedding backfill script.",
   "scripts": {
     "test": "node --test \"src/**/*.test.ts\""
   }

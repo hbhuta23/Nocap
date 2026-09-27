@@ -1,5 +1,5 @@
 #!/bin/sh
-# nocap agent hook (A1, A2). Owner: Role A.
+# Nocap agent hook (A1, A2). Owner: Role A.
 # Installed by the extension into each agent's hook config:
 #   Claude Code  .claude/settings.local.json   nocap-hook.sh claude pre-tool-use | user-prompt-submit
 #   Codex CLI    .codex/hooks.json             nocap-hook.sh codex  pre-tool-use | user-prompt-submit
@@ -27,7 +27,7 @@ fi
 case "$EVENT" in pre-tool-use|before-tool|before-shell) ;; *) exit 0 ;; esac
 if printf '%s' "$PAYLOAD" | grep -Eiq \
   'rm -[a-z]*[rf]|DELETE FROM|DROP (TABLE|DATABASE)|TRUNCATE|reset --hard|clean -[a-z]*f|push (-f|--force)|branch -D'; then
-  REASON="nocap is offline, so risky actions are blocked. Ask the developer to start nocap."
+  REASON="Nocap is offline, so risky actions are blocked. Ask the developer to start nocap."
   if [ "$AGENT" = "cursor" ]; then
     printf '{"permission":"deny","user_message":"%s","agent_message":"%s"}' "$REASON" "$REASON"
   elif [ "$AGENT" = "gemini" ] || [ "$AGENT" = "antigravity" ]; then

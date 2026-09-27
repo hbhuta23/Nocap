@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Any AI provider for the judge: Gemini, Anthropic, OpenAI, OpenRouter, Groq or xAI, recognised from the key
+- Now spelled Nocap everywhere
+
 ## 0.1.1
 
 - Icon: transparent rounded corners (no white edges)

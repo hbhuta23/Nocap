@@ -61,7 +61,7 @@ async function decline(checkId: string) {
 function ask(e: HumanNeeded): Promise<void> {
   const panel = vscode.window.createWebviewPanel(
     'nocap.approval',
-    'nocap: approve?',
+    'Nocap: approve?',
     { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
     { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')] },
   );
@@ -136,7 +136,7 @@ function ask(e: HumanNeeded): Promise<void> {
           }
         }
       } catch {
-        void webview.postMessage({ type: 'closed', message: 'nocap is offline. The command was blocked.' });
+        void webview.postMessage({ type: 'closed', message: 'Nocap is offline. The command was blocked.' });
         finish(1500);
       }
     });

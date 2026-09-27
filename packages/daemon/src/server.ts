@@ -1,4 +1,4 @@
-// nocap daemon (localhost:7777). Owner: Role B, except src/adapters/ (Role A).
+// Nocap daemon (localhost:7777). Owner: Role B, except src/adapters/ (Role A).
 // Role B owns the local API and streams; agent-specific request mapping stays in adapters/.
 
 import Fastify from 'fastify';
@@ -75,7 +75,7 @@ export async function startServer(port = DAEMON_PORT) {
   registerCursorRoutes(app);
 
   await app.listen({ host: DAEMON_HOST, port });
-  console.log(`nocap daemon listening on http://${DAEMON_HOST}:${port}`);
+  console.log(`Nocap daemon listening on http://${DAEMON_HOST}:${port}`);
   return app;
 }
 

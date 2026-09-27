@@ -21,5 +21,5 @@ function escapeRegExp(value: string): string {
 }
 
 function blocked(response: VerdictResponse, reason: string): VerdictResponse {
-  return { ...response, verdict: 'block' as Verdict, headline: response.headline.startsWith('CAP') ? response.headline : 'CAP DETECTED: policy blocked this action', reason_for_agent: `Blocked by nocap: ${reason}`, layers: { ...response.layers, intent_effect: { ok: false, why: reason } } };
+  return { ...response, verdict: 'block' as Verdict, headline: response.headline.startsWith('CAP') ? response.headline : 'CAP DETECTED: policy blocked this action', reason_for_agent: `Blocked by Nocap: ${reason}`, layers: { ...response.layers, intent_effect: { ok: false, why: reason } } };
 }

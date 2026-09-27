@@ -5,7 +5,7 @@ const REFLEX_WORDS = new Set(['y', 'yes', 'yep', 'yeah', 'ok', 'okay', 'k', 'go'
 const MIN_WORDS = 4;
 const MIN_MS_OPEN = 2_000;
 
-export const REFLEX_REFUSAL = 'Tell nocap what you expect this to do.';
+export const REFLEX_REFUSAL = 'Tell Nocap what you expect this to do.';
 
 /** Returns a refusal message, or null if the answer is acceptable. */
 export function refuseReflexAnswer(answer: string, msSinceOpen: number): string | null {

@@ -6,7 +6,7 @@ import { chmodSync, readdirSync } from 'node:fs';
 export function enableShims(context: vscode.ExtensionContext) {
   ensureExecutable(context);
   const env = context.environmentVariableCollection;
-  env.description = 'nocap: routes risky agent commands through safety checks';
+  env.description = 'Nocap: routes risky agent commands through safety checks';
   env.prepend('PATH', context.asAbsolutePath('dist/shims/bin') + delimiter);
 }
 

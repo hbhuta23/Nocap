@@ -1,4 +1,4 @@
-// nocap side panel (B17–B20). Plain DOM; everything from agents is inserted with textContent, never innerHTML.
+// Nocap side panel (B17–B20). Plain DOM; everything from agents is inserted with textContent, never innerHTML.
 (function () {
   const vscode = acquireVsCodeApi();
   const $ = (id) => document.getElementById(id);

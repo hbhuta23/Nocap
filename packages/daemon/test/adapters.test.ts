@@ -21,7 +21,7 @@ const fixture = (prefix: string) => JSON.parse(readFileSync(join(FIXTURES, readd
 const verdict = (v: Partial<VerdictResponse>): VerdictResponse => ({
   check_id: 'chk_1', verdict: 'allow', category: 'data', headline: 'h', facts: [],
   layers: { task_fit: { ok: true, why: '' }, intent_effect: { ok: true, why: '' } },
-  reason_for_agent: 'Blocked by nocap: this deletes 48,213 users.', mode: 'full', latency_ms: 1, ...v,
+  reason_for_agent: 'Blocked by Nocap: this deletes 48,213 users.', mode: 'full', latency_ms: 1, ...v,
 });
 
 // ---------- Claude Code (real payloads recorded in A0.2) ----------
@@ -118,7 +118,7 @@ test('gemini: run_shell_command, write_file and replace map to checks', () => {
 test('gemini output: {} to allow, {decision:"deny", reason} to block', () => {
   assert.deepEqual(toGeminiOutput(verdict({ verdict: 'allow' })), {});
   assert.equal((toGeminiOutput(verdict({ verdict: 'allow', human_confirmed: true })) as any).decision, 'allow');
-  assert.deepEqual(toGeminiOutput(verdict({ verdict: 'block' })), { decision: 'deny', reason: 'Blocked by nocap: this deletes 48,213 users.' });
+  assert.deepEqual(toGeminiOutput(verdict({ verdict: 'block' })), { decision: 'deny', reason: 'Blocked by Nocap: this deletes 48,213 users.' });
 });
 
 // ---------- Antigravity (tool args verbatim from a real 1.2.11 transcript) ----------
@@ -153,7 +153,7 @@ test('antigravity: the latest prompt is read from the transcript (PreInvocation 
 
 test('antigravity output: {} to allow, {decision, reason} to block or ask', () => {
   assert.deepEqual(toAntigravityOutput(verdict({ verdict: 'allow' })), {});
-  assert.deepEqual(toAntigravityOutput(verdict({ verdict: 'block' })), { decision: 'deny', reason: 'Blocked by nocap: this deletes 48,213 users.' });
+  assert.deepEqual(toAntigravityOutput(verdict({ verdict: 'block' })), { decision: 'deny', reason: 'Blocked by Nocap: this deletes 48,213 users.' });
   assert.equal((toAntigravityOutput(verdict({ verdict: 'ask' })) as any).decision, 'ask');
   assert.equal((toAntigravityOutput(verdict({ verdict: 'allow', human_confirmed: true })) as any).decision, 'allow');
 });
@@ -235,6 +235,6 @@ test('cursor: preToolUse maps edits by shape and skips shell tools (no double pr
 test('cursor output: {} to allow, {permission, user_message, agent_message} to block', () => {
   assert.deepEqual(toCursorOutput(verdict({ verdict: 'allow' })), {});
   const out = toCursorOutput(verdict({ verdict: 'block', headline: 'CAP DETECTED: 48,213 rows' })) as any;
-  assert.deepEqual([out.permission, out.user_message], ['deny', 'nocap: CAP DETECTED: 48,213 rows']);
+  assert.deepEqual([out.permission, out.user_message], ['deny', 'Nocap: CAP DETECTED: 48,213 rows']);
   assert.match(out.agent_message, /48,213 users/);
 });

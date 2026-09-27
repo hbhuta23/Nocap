@@ -56,7 +56,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
           }
           case 'copy':
             await vscode.env.clipboard.writeText(String(m.text ?? ''));
-            vscode.window.setStatusBarMessage('nocap: copied', 2000);
+            vscode.window.setStatusBarMessage('Nocap: copied', 2000);
             break;
         }
       }),
@@ -95,7 +95,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <header class="top">
-    <span class="brand"><img src="${media('logo.svg')}" alt="" width="20" height="20">nocap</span>
+    <span class="brand"><img src="${media('logo.svg')}" alt="" width="20" height="20">Nocap</span>
     <span id="status" class="status">on</span>
   </header>
   <div class="stats">

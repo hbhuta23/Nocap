@@ -95,12 +95,12 @@ export function toVsCodeCheckRequest(p: VsCodeHookPayload): CheckRequest | null 
   return null;
 }
 
-/** No decision = VS Code's normal flow; "allow" only after the developer confirmed in nocap (FR-H5). */
+/** No decision = VS Code's normal flow; "allow" only after the developer confirmed in Nocap (FR-H5). */
 export function toVsCodeOutput(v: VerdictResponse) {
   let decision: 'allow' | 'deny' | 'ask' | null = null;
   let reason = '';
   if (v.verdict === 'allow' || v.verdict === 'warn') {
-    if (v.human_confirmed) (decision = 'allow'), (reason = 'Confirmed by the developer in nocap');
+    if (v.human_confirmed) (decision = 'allow'), (reason = 'Confirmed by the developer in Nocap');
   } else {
     decision = v.verdict === 'ask' ? 'ask' : 'deny';
     reason = v.reason_for_agent;

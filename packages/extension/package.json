@@ -1,8 +1,8 @@
 {
   "name": "nocap",
-  "displayName": "nocap: Stop AI agents from capping",
+  "displayName": "Nocap: Stop AI agents from capping",
   "description": "Checks what your AI coding agent is about to do before it does it: dry-runs SQL, estimates LLM spend, catches weakened tests, enforces your team rules, and makes you say what you expect before you approve. Works with Claude Code, Cursor, Codex, Gemini, Antigravity, VS Code chat and any terminal agent.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "HetanshBhuta",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -50,7 +50,7 @@
       "activitybar": [
         {
           "id": "nocap",
-          "title": "nocap",
+          "title": "Nocap",
           "icon": "media/nocap.svg"
         }
       ]
@@ -60,34 +60,34 @@
         {
           "type": "webview",
           "id": "nocap.panel",
-          "name": "nocap"
+          "name": "Nocap"
         }
       ]
     },
     "commands": [
       {
         "command": "nocap.enable",
-        "title": "nocap: Enable in this workspace"
+        "title": "Nocap: Enable in this workspace"
       },
       {
         "command": "nocap.disable",
-        "title": "nocap: Disable in this workspace"
+        "title": "Nocap: Disable in this workspace"
       },
       {
         "command": "nocap.setTask",
-        "title": "nocap: Set task"
+        "title": "Nocap: Set task"
       },
       {
         "command": "nocap.openPanel",
-        "title": "nocap: Open panel"
+        "title": "Nocap: Open panel"
       },
       {
         "command": "nocap.relaunchTerminals",
-        "title": "nocap: Relaunch terminals"
+        "title": "Nocap: Relaunch terminals"
       },
       {
         "command": "nocap.menu",
-        "title": "nocap",
+        "title": "Nocap",
         "icon": {
           "light": "media/logo.svg",
           "dark": "media/logo.svg"
@@ -95,17 +95,17 @@
       },
       {
         "command": "nocap.addRule",
-        "title": "nocap: Add a team rule",
+        "title": "Nocap: Add a team rule",
         "icon": "$(add)"
       },
       {
         "command": "nocap.manageRules",
-        "title": "nocap: Team rules",
+        "title": "Nocap: Team rules",
         "icon": "$(law)"
       },
       {
         "command": "nocap.setApiKey",
-        "title": "nocap: Set Gemini API key",
+        "title": "Nocap: Set AI API key",
         "icon": "$(key)"
       }
     ],
@@ -130,12 +130,12 @@
       ]
     },
     "configuration": {
-      "title": "nocap",
+      "title": "Nocap",
       "properties": {
         "nocap.autoProtect": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Protect every workspace automatically: install hooks for the AI agents on this machine (Claude Code, VS Code chat, Cursor, Codex, Gemini CLI, Antigravity) and put the terminal shims on PATH. Turn off to enable nocap per workspace with **nocap: Enable in this workspace**."
+          "markdownDescription": "Protect every workspace automatically: install hooks for the AI agents on this machine (Claude Code, VS Code chat, Cursor, Codex, Gemini CLI, Antigravity) and put the terminal shims on PATH. Turn off to enable Nocap per workspace with **Nocap: Enable in this workspace**."
         }
       }
     }

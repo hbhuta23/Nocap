@@ -79,17 +79,17 @@ export function toCheckRequest(p: PreToolUsePayload): CheckRequest | null {
 
 /**
  * §6.4. Plain allow returns NO decision so Claude Code's own permission prompt still applies;
- * we only return "allow" when the human already confirmed in nocap's pop-up (FR-H5).
+ * we only return "allow" when the human already confirmed in Nocap's pop-up (FR-H5).
  * Codex uses the same output format.
  */
 export function toHookOutput(v: VerdictResponse, humanConfirmed = false) {
   if (v.verdict === 'allow' || v.verdict === 'warn') {
-    if (!humanConfirmed) return v.verdict === 'warn' ? { systemMessage: `nocap warning: ${v.headline}` } : {};
+    if (!humanConfirmed) return v.verdict === 'warn' ? { systemMessage: `Nocap warning: ${v.headline}` } : {};
     return {
       hookSpecificOutput: {
         hookEventName: 'PreToolUse',
         permissionDecision: 'allow',
-        permissionDecisionReason: 'Confirmed by the developer in nocap',
+        permissionDecisionReason: 'Confirmed by the developer in Nocap',
       },
     };
   }

@@ -1,4 +1,4 @@
--- nocap demo database (BRD §5.1, B21). Loaded automatically by Postgres on first start
+-- Nocap demo database (BRD §5.1, B21). Loaded automatically by Postgres on first start
 -- (docker-compose mounts demo/seed into /docker-entrypoint-initdb.d). Reset: npm run demo:reset
 
 CREATE TABLE users (

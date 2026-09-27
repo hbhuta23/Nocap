@@ -1,4 +1,4 @@
-/* nocap approval pop-up: a centered card over a dimmed backdrop, colors from the user's theme and terminal palette. */
+/* Nocap approval pop-up: a centered card over a dimmed backdrop, colors from the user's theme and terminal palette. */
 :root {
   color-scheme: light dark;
   --fg: var(--vscode-foreground);

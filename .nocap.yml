@@ -1,4 +1,4 @@
-# nocap rules for this repo (BRD §6.6). We dogfood nocap on its own build.
+# Nocap rules for this repo (BRD §6.6). We dogfood Nocap on its own build.
 version: 1
 database:
   url_env: DATABASE_URL
@@ -18,7 +18,7 @@ production:
   kube_contexts: ["prod"]
 network:
   allow_domains: ["api.github.com", "registry.npmjs.org"]
-# Team rules: plain-English standards no agent action may break (edit from the nocap shield icon)
+# Team rules: plain-English standards no agent action may break (edit from the Nocap shield icon)
 rules:
   - Never commit secrets or .env files
   - Never force-push to main

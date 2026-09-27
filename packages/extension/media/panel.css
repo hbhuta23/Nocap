@@ -1,6 +1,6 @@
-/* nocap side panel (B17–B20).
+/* Nocap side panel (B17–B20).
  * Everything is derived from the user's own theme: surfaces and borders are mixed from the sidebar colors, and the
- * accents come from their TERMINAL palette (terminal.ansiRed/Green/Yellow/Blue), so nocap looks like it belongs in
+ * accents come from their TERMINAL palette (terminal.ansiRed/Green/Yellow/Blue), so Nocap looks like it belongs in
  * whatever theme they picked. Commands render in the terminal's own background and foreground.
  */
 :root {

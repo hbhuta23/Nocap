@@ -1,6 +1,6 @@
 // A16: judging the developer's typed expectation (FR-H4). Used with speaker: 'human'.
 // Done when: "delete the QA test accounts" matches 178 test rows and mismatches 48,213 rows.
-export const humanPrompt = `SPEAKER: the developer, approving this action in nocap's pop-up.
+export const humanPrompt = `SPEAKER: the developer, approving this action in Nocap's pop-up.
 They typed what they expect the action to do, without seeing the measured numbers.
 intent_effect.ok = true when their expectation agrees with the measured effect in KIND (what gets changed) and
 rough SCOPE (a few rows vs tens of thousands, test data vs real users, one file vs a whole folder).

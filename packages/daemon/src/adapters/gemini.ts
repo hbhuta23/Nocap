@@ -52,8 +52,8 @@ export function toGeminiCheckRequest(p: PreToolUsePayload): CheckRequest | null 
 /** Gemini's output format. No decision = Gemini's normal flow; "allow" only after the developer confirmed (FR-H5). */
 export function toGeminiOutput(v: VerdictResponse) {
   if (v.verdict === 'allow' || v.verdict === 'warn') {
-    return v.human_confirmed ? { decision: 'allow', reason: 'Confirmed by the developer in nocap' } : {};
+    return v.human_confirmed ? { decision: 'allow', reason: 'Confirmed by the developer in Nocap' } : {};
   }
-  const reason = v.verdict === 'ask' ? `nocap needs the developer to confirm this first. ${v.reason_for_agent}` : v.reason_for_agent;
+  const reason = v.verdict === 'ask' ? `Nocap needs the developer to confirm this first. ${v.reason_for_agent}` : v.reason_for_agent;
   return { decision: 'deny', reason };
 }

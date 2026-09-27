@@ -18,7 +18,7 @@ export const SUGGESTED_RULES = [
 
 async function load(root: string): Promise<YAML.Document> {
   const file = join(root, FILE);
-  const text = existsSync(file) ? await fs.readFile(file, 'utf8') : '# nocap rules for this repo\nversion: 1\n';
+  const text = existsSync(file) ? await fs.readFile(file, 'utf8') : '# Nocap rules for this repo\nversion: 1\n';
   return YAML.parseDocument(text);
 }
 
@@ -50,7 +50,7 @@ export async function removeRule(root: string, index: number) {
 export async function promptAddRule(root: string) {
   const existing = await readRules(root);
   const pick = vscode.window.createQuickPick();
-  pick.title = 'nocap: add a team rule';
+  pick.title = 'Nocap: add a team rule';
   pick.placeholder = 'Type a rule the AI must never break, or pick a suggestion';
   const suggestions = SUGGESTED_RULES.filter((s) => !existing.includes(s)).map((label) => ({ label, description: 'suggestion' }));
   pick.items = suggestions;
@@ -65,7 +65,7 @@ export async function promptAddRule(root: string) {
   pick.dispose();
   if (!chosen) return;
   await addRule(root, chosen);
-  vscode.window.showInformationMessage(`nocap: team rule added. Every agent action is now checked against "${chosen}".`);
+  vscode.window.showInformationMessage(`Nocap: team rule added. Every agent action is now checked against "${chosen}".`);
 }
 
 /** "Team rules": list, remove, add, or open the file. */
@@ -78,7 +78,7 @@ export async function manageRules(root: string) {
     { label: '$(go-to-file) Open .nocap.yml', action: 'open' },
   ];
   const picked = await vscode.window.showQuickPick(items, {
-    title: `nocap: team rules (${rules.length})`,
+    title: `Nocap: team rules (${rules.length})`,
     placeHolder: rules.length ? 'The AI is blocked from breaking any of these' : 'No rules yet. Add one the AI must never break',
   });
   if (!picked) return;

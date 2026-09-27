@@ -14,7 +14,7 @@ export interface JsonClient {
   generate(prompt: string, schema: object, timeoutMs: number): Promise<string>;
 }
 
-/** The key from the extension (SecretStorage) or .env. Only nocap's own variables: a project's OPENAI_API_KEY is its own business. */
+/** The key from the extension (SecretStorage) or .env. Only Nocap's own variables: a project's OPENAI_API_KEY is its own business. */
 export function currentKey(): string | undefined {
   return process.env.NOCAP_API_KEY || process.env.GEMINI_API_KEY || undefined;
 }
@@ -102,7 +102,7 @@ export function makeClient(apiKey: string, modelOverride?: string): JsonClient |
 export async function checkKey(apiKey: string): Promise<{ ok: boolean; provider?: string; error?: string }> {
   const provider = detectProvider(apiKey);
   if (!provider) {
-    return { ok: false, error: "That key's format isn't one nocap recognises (Gemini, Anthropic, OpenAI, OpenRouter, Groq or xAI)." };
+    return { ok: false, error: "That key's format isn't one Nocap recognises (Gemini, Anthropic, OpenAI, OpenRouter, Groq or xAI)." };
   }
   try {
     if (provider.id === 'gemini') await new GoogleGenAI({ apiKey }).models.list({ config: { pageSize: 1 } });

@@ -5,14 +5,14 @@ Guidance for Claude Code sessions in this repo. Read this first, then `docs/BRD.
 
 ## What we're building
 
-**nocap** (repo name: Polygraph) is a hackathon VS Code extension that guards AI coding agents
+**Nocap** (GitHub: hbhuta23/Nocap; local folder: Polygraph) is a hackathon VS Code extension that guards AI coding agents
 (Claude Code, Codex CLI, Gemini CLI, Aider, ...). Every risky action goes through a three-way check:
 
 1. **Task**: what the developer asked the agent to do
 2. **Intent**: what the agent says this command is for
 3. **Effect**: what the command would actually do, measured by a dry run before it runs
 
-If a layer contradicts the one above it, nocap blocks and tells the agent why ("CAP DETECTED").
+If a layer contradicts the one above it, Nocap blocks and tells the agent why ("CAP DETECTED").
 It also blocks human rubber-stamping: approving a risky action requires typing what you expect it
 to do, and the judge checks that against the measured effect (BRD §5.6).
 
@@ -40,14 +40,14 @@ is on the machine. **Claude Code is verified against real payloads; Codex and Ge
 their docs and still need real payloads recorded into `fixtures/hooks/<agent>/` (scripts/fixtures/setup.sh).**
 
 **Antigravity CLI (`agy`, Google's successor to Gemini CLI; adapter `antigravity.ts`)**, learned on 1.2.11:
-config is `<workspace>/.agents/hooks.json` as named groups (nocap owns `"nocap"`) of **flat** entries
+config is `<workspace>/.agents/hooks.json` as named groups (Nocap owns `"nocap"`) of **flat** entries
 `{matcher, type, command, timeout}` (the docs' nested `hooks: [...]` is rejected: "command hook must specify
 'command'"); tool hooks need a `matcher` or they never fire. Tools: `run_command` (`CommandLine`, `Cwd`,
 `toolAction` = intent), `replace_file_content` (`TargetFile`, `TargetContent`, `ReplacementContent`),
 `multi_replace_file_content`, `write_to_file` (`TargetFile`, `CodeContent`). `PreInvocation` carries no prompt:
 read the last `<USER_REQUEST>` from the transcript file. Output `{decision: deny|ask|allow, reason}`.
 Parse check without running an agent: `cd <workspace> && agy agents`, then grep `hooks` in `~/.gemini/antigravity-cli/cli.log`.
-Workspace hooks load in 1.2.11 (the "workspace hooks ignored" bug was on 1.2.4), BUT **tool hooks never execute in 1.2.11**: a probe with no matcher, `""`, `".*"`, `"RunCommand"` and nocap's own matcher fired none of them, while `PreInvocation` works. The runtime log names the tool `RunCommand`, so the adapter accepts both name styles. Until Google fixes it, Antigravity is covered by the shims (commands + human pop-up), with the task borrowed from the workspace's latest agent prompt (`sessions.getTaskForWorkspace`).
+Workspace hooks load in 1.2.11 (the "workspace hooks ignored" bug was on 1.2.4), BUT **tool hooks never execute in 1.2.11**: a probe with no matcher, `""`, `".*"`, `"RunCommand"` and Nocap's own matcher fired none of them, while `PreInvocation` works. The runtime log names the tool `RunCommand`, so the adapter accepts both name styles. Until Google fixes it, Antigravity is covered by the shims (commands + human pop-up), with the task borrowed from the workspace's latest agent prompt (`sessions.getTaskForWorkspace`).
 
 **VS Code chat hooks need a recent VS Code.** 1.108.1 contains no agent-hook code at all (verified), so chat hooks never fire there; commands are still caught by the shims, but chat file edits are not. `chat.useClaudeHooks` is off by default, which is why chat needs `.github/hooks/nocap.json`.
 
@@ -81,7 +81,7 @@ packages/extension/   [A] extension.ts, daemonManager, pathInjection, hookInstal
   src/panel/          [B] PanelProvider (side panel webview)
 demo/                 [B] seed SQL (mounted into Postgres), shop-app, reset
 fixtures/hooks/       [A] real hook payloads captured from Claude Code
-.nocap.yml            rules file (BRD §6.6); we dogfood nocap on this repo
+.nocap.yml            rules file (BRD §6.6); we dogfood Nocap on this repo
 ```
 
 ## Commands
@@ -129,8 +129,8 @@ testable TypeScript. Shims exit **86** on block/ask.
 
 Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so the whole team shares them:
 "Never touch the payments table", "Never edit files in db/migrations", "Ask before anything that costs more than $2".
-- Edited from VS Code: the **shield icon in the editor title bar** (next to Claude's) opens the nocap menu
-  (team rules, add a rule with suggestions, panel, set task); also `nocap: Add a team rule` / `nocap: Team rules`
+- Edited from VS Code: the **shield icon in the editor title bar** (next to Claude's) opens the Nocap menu
+  (team rules, add a rule with suggestions, panel, set task); also `Nocap: Add a team rule` / `Nocap: Team rules`
   and buttons on the panel's title bar. Code: `extension/src/rules.ts` (yaml Document API keeps comments).
 - Enforced by the judge (`rules` in `JudgeInput`; `violated_rule` in `JudgeResult`, quoted exactly). A broken rule
   → `category: 'rule'`, fact "Team rule broken", headline "CAP DETECTED: breaks team rule …".
@@ -138,7 +138,7 @@ Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so 
   judge only if it mentions a rule keyword (local string match, e.g. "payment"), and is then stopped **only** for
   a broken rule, never for task fit. No keyword hit → the <50 ms path is untouched.
 - A broken rule is never released by an accurate pop-up description: the developer must type `override` (the pop-up names the rule). Rules bind agents only.
-- Tamper guard (`daemon/src/guard.ts`): agents may not delete, move or write nocap's own files (`.nocap.yml`, the hook files, the logs, or folders holding them, e.g. `rm -rf .github`); blocked in ~30 ms, no judge, no pop-up. Reads are allowed. Seen live: an agent deleting `.github`, another reading `.nocap.yml` and the audit log.
+- Tamper guard (`daemon/src/guard.ts`): agents may not delete, move or write Nocap's own files (`.nocap.yml`, the hook files, the logs, or folders holding them, e.g. `rm -rf .github`); blocked in ~30 ms, no judge, no pop-up. Reads are allowed. Seen live: an agent deleting `.github`, another reading `.nocap.yml` and the audit log.
 - Eval: 5 rule cases (35 total), graded on verdict AND the quoted rule; rules that aren't broken count as false blocks.
 
 ## Invariants (never break these)
@@ -147,8 +147,8 @@ Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so 
 - **Nothing sensitive reaches Gemini** (FR-G7). Everything goes through `judge/src/redact.ts`; redacted columns come from `.nocap.yml`.
 - **The AI reads, math decides.** Row counts, file counts and dollar estimates are computed deterministically; the judge only compares them to task/intent. Hard rules in `.nocap.yml` beat the judge.
 - **Safe commands < 50 ms, no AI call** (FR-G1). Deep checks < 5 s. Judge timeout 4 s → `mode: "rules_only"` (FR-G5).
-- **Daemon down:** safe commands pass, risky ones are blocked with "nocap is offline" (FR-G4). Both the hook and the shim have an inline fallback regex for this.
-- **Plain "allow" returns no decision to Claude Code**, so Claude's own permission prompt still applies. Only return `permissionDecision: "allow"` when the human already confirmed in nocap's pop-up (FR-H5).
+- **Daemon down:** safe commands pass, risky ones are blocked with "Nocap is offline" (FR-G4). Both the hook and the shim have an inline fallback regex for this.
+- **Plain "allow" returns no decision to Claude Code**, so Claude's own permission prompt still applies. Only return `permissionDecision: "allow"` when the human already confirmed in Nocap's pop-up (FR-H5).
 - **Every `reason_for_agent` is written for the agent:** what was wrong (one number), why it doesn't match, what to do instead.
 - **Audit logging never slows a verdict**; fall back to a local `.jsonl` if Atlas is unreachable.
 
@@ -159,10 +159,12 @@ Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so 
 - A0.2 findings (Claude Code, `fixtures/hooks/claude-code/`): hooks fire in `auto` mode (now the default); every Bash call carries `tool_input.description` (free intent); `prompt_id` links each tool call to the `UserPromptSubmit` that caused it (use it for task tracking).
 - Claude Code itself runs `git` ~100 times in the background (status line, change tracking) without `CLAUDECODE` set. The shim runs read-only git locally with no daemon call; keep that fast path.
 - Agents notice shims and route around them: in A0.2 Claude inspected `.nocap-probe-bin/` and called `/opt/homebrew/bin/node` by full path. Native hooks saw every call anyway. Hooks are the primary layer; shims are the fallback.
-- Hooks are installed into `.claude/settings.local.json` (gitignored), not `settings.json`, so teammates without nocap aren't blocked by "nocap is offline". Claude Code reads hooks at startup: restart it (or review `/hooks`) after installing.
+- Hooks are installed into `.claude/settings.local.json` (gitignored), not `settings.json`, so teammates without Nocap aren't blocked by "Nocap is offline". Claude Code reads hooks at startup: restart it (or review `/hooks`) after installing.
 - `environmentVariableCollection` only affects terminals opened after it's set; old terminals need relaunching.
 - The daemon is spawned with VS Code's own Node (`process.execPath` + `ELECTRON_RUN_AS_NODE=1`), so it must stay pure JS (no native modules).
 - Port 7777 is shared across VS Code windows; the first window's daemon serves all of them.
+- **Any provider for the judge** (`judge/src/providers.ts`, `shared/src/providers.ts`): the key's prefix picks it: `AIza`/`AQ.` Gemini, `sk-ant-` Anthropic (`claude-haiku-4-5`, structured outputs), `sk-or-` OpenRouter, `gsk_` Groq, `xai-` xAI, `sk-` OpenAI (`gpt-5.4-mini`, strict schema). Key from `NOCAP_API_KEY` (extension) or `GEMINI_API_KEY` (.env), never a project's own `OPENAI_API_KEY`. Overrides: `NOCAP_MODEL`, `NOCAP_PROVIDER`, `NOCAP_BASE_URL` (any OpenAI-compatible server). Prompts and schemas are shared; the Gemini schema is converted for the others (`toJsonSchema`). Only Gemini is eval-verified (35/35); the rest are unverified until someone runs `NOCAP_API_KEY=… npm run eval`.
+- **Naming:** the product is "Nocap" in all user-facing text. Ids stay lowercase: the extension id `HetanshBhuta.nocap`, commands `nocap.*`, setting `nocap.autoProtect`, `.nocap.yml`, `NOCAP_*`, `@nocap/*`, the hook/shim file names.
 - Gemini model (decided from the A18 eval, 2026-09-26): **`gemini-flash-lite-latest`**: 30/30 on three runs, 0 false blocks, median ~1.1 s, max ~1.5 s (inside the 4 s judge timeout). `gemini-3.8-flash` scored the same but took 3–12 s; `gemini-3.5-flash-lite` let a snapshot overwrite through. `-latest` is an alias Google can move, so re-run `npm run eval` before the demo. `gemini-2.5-flash` is retired for new keys. 503 "high demand" is retried once; the key needs billing (free tier ran out after ~6 calls).
 - The pop-up's rules (queue, Escape = decline, close stale ones) are documented at the top of `extension/src/human/intentPrompt.ts`; they came from bugs in the first live test.
 - `judgeContext` must use explicit counts with clear names (`rows_matching_test_email_pattern: 178`), never bare ratios; the judge misread `1.0` as "1 row".

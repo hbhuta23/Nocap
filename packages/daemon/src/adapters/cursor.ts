@@ -59,14 +59,14 @@ export function toCursorToolCheck(p: CursorPayload): CheckRequest | null {
   return mapped ? { ...mapped, source: 'cursor_hook', agent: 'cursor' } : null;
 }
 
-/** No decision = Cursor's normal flow; "allow" only after the developer confirmed in nocap (FR-H5). */
+/** No decision = Cursor's normal flow; "allow" only after the developer confirmed in Nocap (FR-H5). */
 export function toCursorOutput(v: VerdictResponse) {
   if (v.verdict === 'allow' || v.verdict === 'warn') {
-    return v.human_confirmed ? { permission: 'allow', user_message: 'Confirmed in nocap' } : {};
+    return v.human_confirmed ? { permission: 'allow', user_message: 'Confirmed in Nocap' } : {};
   }
   return {
     permission: v.verdict === 'ask' ? 'ask' : 'deny',
-    user_message: `nocap: ${v.headline}`,
+    user_message: `Nocap: ${v.headline}`,
     agent_message: v.reason_for_agent,
   };
 }

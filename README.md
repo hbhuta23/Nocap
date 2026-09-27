@@ -1,11 +1,11 @@
-# nocap (repo: Polygraph)
+# Nocap
 
-**Other tools read the command. nocap tests it first.**
+**Other tools read the command. Nocap tests it first.**
 
-nocap is a VS Code extension that makes every AI coding agent prove what it's about to do before it does it.
+Nocap is a VS Code extension that makes every AI coding agent prove what it's about to do before it does it.
 Every risky action is checked three ways: the **task** (what the developer asked), the **intent** (what the agent
 says the command is for), and the **effect** (what a dry run shows it would actually do). If they don't line up,
-nocap blocks it and tells the agent why. It also stops developers from rubber-stamping: to approve a risky action
+Nocap blocks it and tells the agent why. It also stops developers from rubber-stamping: to approve a risky action
 you have to type what you expect it to do.
 
 Full spec: [`docs/BRD.pdf`](docs/BRD.pdf). macOS and Linux only.

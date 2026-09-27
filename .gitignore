@@ -13,13 +13,13 @@ out/
 # local audit log fallback (B15)
 .nocap/
 
-# Claude Code per-developer settings (nocap installs its hooks here)
+# Claude Code per-developer settings (Nocap installs its hooks here)
 .claude/settings.local.json
 
 # A0.2 recorder output: keep hook payloads, skip the noisy probe log and env metadata
 fixtures/shims/
 fixtures/hooks/**/*.meta
 
-# nocap runtime logs (until they move to ~/.nocap, B15)
+# Nocap runtime logs (until they move to ~/.nocap, B15)
 .nocap.audit.jsonl
 .nocap.sessions.jsonl

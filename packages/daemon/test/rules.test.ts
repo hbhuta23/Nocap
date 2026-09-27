@@ -55,9 +55,9 @@ test('.nocap.yml: missing or broken file falls back to defaults', () => {
   assert.equal(loadConfig(dir).human_check, 'risky');
 });
 
-// ---------- Tamper guard: agents can't change nocap's own setup ----------
+// ---------- Tamper guard: agents can't change Nocap's own setup ----------
 
-test("tamper guard: deleting or writing nocap's files is caught; reading and unrelated commands are not", () => {
+test("tamper guard: deleting or writing Nocap's files is caught; reading and unrelated commands are not", () => {
   const bash = (command: string) => ({ session_id: 's', source: 'shim' as const, agent: 'unknown' as const, cwd: '/w', tool: 'bash' as const, command, intent: null });
   // seen live: an agent deleting the folder that holds the VS Code hook file
   assert.equal(tamperTarget(bash('rm -rf .github')), '.github');

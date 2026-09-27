@@ -1,7 +1,7 @@
 export const DAEMON_HOST = '127.0.0.1';
 export const DAEMON_PORT = Number(process.env.NOCAP_PORT ?? 7777);
 
-/** Exit code the shims use when nocap blocks a command (§6.4). */
+/** Exit code the shims use when Nocap blocks a command (§6.4). */
 export const SHIM_BLOCK_EXIT_CODE = 86;
 
 export const SAFE_LATENCY_BUDGET_MS = 50; // FR-G1

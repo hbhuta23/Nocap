@@ -27,7 +27,7 @@ export function holdForHuman(input: Omit<Pending, 'resolve' | 'timer'>): Promise
     const timer = setTimeout(() => {
       pending.delete(input.check_id);
       bus.emit({ type: 'human.answered', check_id: input.check_id, outcome: 'timeout', at: Date.now() });
-      resolve({ ...input.response, verdict: 'block', reason_for_agent: "Blocked by nocap: the developer didn't confirm." });
+      resolve({ ...input.response, verdict: 'block', reason_for_agent: "Blocked by Nocap: the developer didn't confirm." });
     }, HUMAN_CHECK_TIMEOUT_MS);
     pending.set(input.check_id, { ...input, resolve, timer });
     bus.emit({ type: 'human.needed', check_id: input.check_id, agent: input.request.agent, command: input.request.command, task: input.task, category: input.category, at: Date.now() });
@@ -42,7 +42,7 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
     clearTimeout(check.timer);
     pending.delete(check.check_id);
     bus.emit({ type: 'human.answered', check_id: check.check_id, outcome: 'declined', at: Date.now() });
-    check.resolve({ ...check.response, verdict: 'block', reason_for_agent: 'Blocked by nocap: the developer declined this action. Ask them what they want instead.' });
+    check.resolve({ ...check.response, verdict: 'block', reason_for_agent: 'Blocked by Nocap: the developer declined this action. Ask them what they want instead.' });
     await audit(check.request.cwd, { type: 'human_check', check_id: body.check_id, outcome: 'declined', at: Date.now() });
     return { accepted: true };
   }
@@ -55,7 +55,7 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
     }
   }
   const check = pending.get(body.check_id);
-  if (!check) return { accepted: false, message: 'This nocap check is no longer pending.' };
+  if (!check) return { accepted: false, message: 'This Nocap check is no longer pending.' };
   // A broken team rule is the team's standard, not a question of what the developer expects: describing the
   // action correctly never unlocks it. Only an explicit "override" does (logged like any override).
   const brokenRule = check.response.facts.find((f) => f.label === 'Team rule broken')?.value;

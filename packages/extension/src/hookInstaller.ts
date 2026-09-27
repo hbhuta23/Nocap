@@ -1,10 +1,10 @@
-// A3: merge nocap's hooks into each agent's project hook config without overwriting anything.
-//   Claude Code  .claude/settings.local.json  (gitignored, so teammates without nocap aren't blocked)
+// A3: merge Nocap's hooks into each agent's project hook config without overwriting anything.
+//   Claude Code  .claude/settings.local.json  (gitignored, so teammates without Nocap aren't blocked)
 //   Codex CLI    .codex/hooks.json            (Codex asks the developer to trust new hooks once, via /hooks)
 //   Gemini CLI   .gemini/settings.json        (timeouts in milliseconds)
-//   Antigravity  .agents/hooks.json           (named groups of flat entries; nocap owns the "nocap" group)
-//   VS Code chat .github/hooks/nocap.json     (Copilot agent mode; nocap owns the file)
-//   Cursor       .cursor/hooks.json           (flat entries; nocap entries replaced on install)
+//   Antigravity  .agents/hooks.json           (named groups of flat entries; Nocap owns the "nocap" group)
+//   VS Code chat .github/hooks/nocap.json     (Copilot agent mode; Nocap owns the file)
+//   Cursor       .cursor/hooks.json           (flat entries; Nocap entries replaced on install)
 // Codex, Gemini and Antigravity hooks are only installed when that agent is on this machine.
 import * as vscode from 'vscode';
 import { constants as fsConstants, existsSync, promises as fs } from 'node:fs';
@@ -23,7 +23,7 @@ interface AgentHooks {
   file: string;
   /** Installed only when this returns true. */
   present: () => boolean;
-  /** event name in the agent's config → [nocap event, tool matcher (tool events only), timeout in the agent's unit]. */
+  /** event name in the agent's config → [Nocap event, tool matcher (tool events only), timeout in the agent's unit]. */
   events: Record<string, [string, string | undefined, number]>;
   hookArg: string;
 }
@@ -93,8 +93,8 @@ async function installAntigravity(script: string, root: string): Promise<boolean
 
 // ---------- VS Code chat (Copilot agent mode) ----------
 // .github/hooks/*.json is on by default (`chat.useHooks`); our .claude/settings.local.json is only read when
-// the user enables `chat.useClaudeHooks`, so chat needs its own file. nocap owns the whole file. It is kept
-// out of git via .git/info/exclude (a committed hook would block teammates who don't run nocap).
+// the user enables `chat.useClaudeHooks`, so chat needs its own file. Nocap owns the whole file. It is kept
+// out of git via .git/info/exclude (a committed hook would block teammates who don't run Nocap).
 const VSCODE_FILE = '.github/hooks/nocap.json';
 
 async function installVsCode(script: string, root: string) {
@@ -113,7 +113,7 @@ async function installVsCode(script: string, root: string) {
 
 // ---------- Cursor ----------
 // .cursor/hooks.json { version: 1, hooks: { <event>: [{ command, timeout }] } } (flat entries). Other hooks in
-// the file are kept; nocap's entries are replaced on every install. Kept out of git like the others.
+// the file are kept; Nocap's entries are replaced on every install. Kept out of git like the others.
 const CURSOR_FILE = '.cursor/hooks.json';
 
 function cursorPresent(): boolean {
@@ -159,7 +159,7 @@ async function excludeFromGit(root: string, path: string) {
   if (!existsSync(join(root, '.git'))) return;
   await fs.mkdir(dirname(exclude), { recursive: true });
   const current = existsSync(exclude) ? await fs.readFile(exclude, 'utf8') : '';
-  if (!current.split('\n').includes(path)) await fs.appendFile(exclude, `${current && !current.endsWith('\n') ? '\n' : ''}# nocap (local only)\n${path}\n`);
+  if (!current.split('\n').includes(path)) await fs.appendFile(exclude, `${current && !current.endsWith('\n') ? '\n' : ''}# Nocap (local only)\n${path}\n`);
 }
 
 async function uninstallAntigravity(root: string) {
@@ -184,7 +184,7 @@ async function writeIfChanged(file: string, text: string) {
   if (current !== text) await fs.writeFile(file, text);
 }
 
-/** Remove existing nocap entries (and events left empty) so re-running never duplicates them. */
+/** Remove existing Nocap entries (and events left empty) so re-running never duplicates them. */
 function strip(settings: Settings) {
   for (const [event, entries] of Object.entries(settings.hooks ?? {})) {
     const kept = entries.filter((e) => !e.hooks?.some((h) => h.command.includes(MARKER)));

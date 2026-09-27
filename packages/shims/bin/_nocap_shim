@@ -1,5 +1,5 @@
 #!/bin/bash
-# nocap universal shim (A4). Owner: Role A.
+# Nocap universal shim (A4). Owner: Role A.
 # Each wrapper in this folder runs: exec _nocap_shim <real-binary-name> "$@"
 # The extension prepends this folder to PATH in VS Code terminals only (A8).
 
@@ -17,7 +17,7 @@ find_real() {
   return 1
 }
 
-REAL="$(find_real "$NAME")" || { echo "nocap: $NAME not found on PATH" >&2; exit 127; }
+REAL="$(find_real "$NAME")" || { echo "Nocap: $NAME not found on PATH" >&2; exit 127; }
 
 # Claude Code's PreToolUse hook already checked this command; don't check (or prompt) twice.
 if [ -n "$CLAUDECODE" ]; then exec "$REAL" "$@"; fi
@@ -54,7 +54,7 @@ RESP="$("$CURL" "${CURL_ARGS[@]}" "http://127.0.0.1:$PORT/v1/shim" 2>/dev/null)"
 if [ $? -ne 0 ]; then
   # FR-G4: daemon offline. Safe commands pass, risky ones are blocked.
   if printf '%s ' "$NAME" "$@" | grep -Eiq 'rm -[a-z]*[rf]|DELETE FROM|DROP (TABLE|DATABASE)|TRUNCATE|reset --hard|clean -[a-z]*f|push (-f|--force)'; then
-    echo "nocap is offline, so risky commands are blocked." >&2
+    echo "Nocap is offline, so risky commands are blocked." >&2
     exit 86
   fi
   exec "$REAL" "$@"

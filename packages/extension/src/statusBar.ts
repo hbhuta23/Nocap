@@ -17,7 +17,7 @@ export class StatusBar implements vscode.Disposable {
     this.render();
   }
 
-  /** Without an API key nocap still runs on rules and measurements; the status bar offers the key prompt. */
+  /** Without an API key Nocap still runs on rules and measurements; the status bar offers the key prompt. */
   setNeedsKey(needsKey: boolean) {
     this.needsKey = needsKey;
     this.render();
@@ -25,15 +25,15 @@ export class StatusBar implements vscode.Disposable {
 
   private render() {
     if (this.status === 'offline') {
-      this.item.text = '$(shield) nocap: offline';
-      this.item.tooltip = 'The nocap daemon is not running. Risky agent actions are blocked until it is back.';
+      this.item.text = '$(shield) Nocap: offline';
+      this.item.tooltip = 'The Nocap daemon is not running. Risky agent actions are blocked until it is back.';
       this.item.command = 'nocap.openPanel';
       this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
       return;
     }
     this.item.backgroundColor = this.needsKey ? new vscode.ThemeColor('statusBarItem.warningBackground') : undefined;
-    this.item.text = this.needsKey ? '$(shield) nocap: add key' : `$(shield) nocap: ${this.status}`;
-    this.item.tooltip = this.needsKey ? 'Add an AI API key to turn on the judge (rules and measurements work without it).' : 'Open the nocap panel';
+    this.item.text = this.needsKey ? '$(shield) Nocap: add key' : `$(shield) Nocap: ${this.status}`;
+    this.item.tooltip = this.needsKey ? 'Add an AI API key to turn on the judge (rules and measurements work without it).' : 'Open the Nocap panel';
     this.item.command = this.needsKey ? 'nocap.setApiKey' : 'nocap.openPanel';
   }
 
