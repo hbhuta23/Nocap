@@ -45,10 +45,11 @@ export const sessions = {
     return t ? describe(t) : null;
   },
 
-  /** Explicit task from the panel or CLI: replaces everything. */
-  setTask(sessionId: string, task: string, source: TaskRequest['source']) {
+  /** Explicit task from the panel or CLI: replaces everything. With a workspace, agents working there borrow it. */
+  setTask(sessionId: string, task: string, source: TaskRequest['source'], workspace?: string) {
     sessionTasks.set(sessionId, { task, earlier: null, followUps: [] });
-    publish(sessionId, source);
+    if (workspace) markLatest(workspace, sessionId);
+    publish(sessionId, source, workspace);
   },
 
   /**
@@ -67,10 +68,7 @@ export const sessions = {
   addPrompt(sessionId: string, prompt: string, source: TaskRequest['source'], workspace?: string) {
     const text = prompt.trim();
     if (!text) return;
-    if (workspace) {
-      lastSessionByWorkspace.delete(workspace); // re-insert so iteration order stays most-recent-last
-      lastSessionByWorkspace.set(workspace, sessionId);
-    }
+    if (workspace) markLatest(workspace, sessionId);
     const current = sessionTasks.get(sessionId);
     if (current && isFollowUp(text)) {
       current.followUps = [...current.followUps, text].slice(-MAX_FOLLOW_UPS);
@@ -84,8 +82,13 @@ export const sessions = {
   },
 };
 
+function markLatest(workspace: string, sessionId: string) {
+  lastSessionByWorkspace.delete(workspace); // re-insert so iteration order stays most-recent-last
+  lastSessionByWorkspace.set(workspace, sessionId);
+}
+
 function publish(sessionId: string, source: TaskRequest['source'], workspace?: string) {
   const task = sessions.getTask(sessionId) ?? '';
-  bus.emit({ type: 'task.updated', session_id: sessionId, task, source, at: Date.now() });
+  bus.emit({ type: 'task.updated', session_id: sessionId, task, source, at: Date.now(), cwd: workspace });
   void appendFile(join(logDir(workspace ?? process.cwd()), 'sessions.jsonl'), `${JSON.stringify({ session_id: sessionId, task, source, updated_at: Date.now() })}\n`, 'utf8').catch(() => undefined);
 }

@@ -69,6 +69,8 @@ export interface TaskRequest {
   session_id: string;
   task: string;
   source: 'claude_hook' | 'codex_hook' | 'gemini_hook' | 'antigravity_hook' | 'vscode_hook' | 'cursor_hook' | 'panel' | 'cli';
+  /** Workspace folder the task is for (the panel's), so it only applies to agents working there. */
+  workspace?: string;
 }
 
 export interface HumanIntentRequest {
@@ -105,7 +107,7 @@ export interface HealthResponse {
 export type StreamEvent =
   | { type: 'check.started'; check_id: string; request: CheckRequest; at: number }
   | { type: 'check.finished'; check_id: string; request: CheckRequest; response: VerdictResponse; at: number }
-  | { type: 'task.updated'; session_id: string; task: string; source: TaskRequest['source']; at: number }
+  | { type: 'task.updated'; session_id: string; task: string; source: TaskRequest['source']; at: number; /** Workspace it belongs to, when known. */ cwd?: string }
   | {
       type: 'human.needed';
       check_id: string;
@@ -116,6 +118,10 @@ export type StreamEvent =
       task: string | null;
       category: Category;
       at: number;
+      /** Where the agent is working; each VS Code window only shows pop-ups for its own workspace. */
+      cwd?: string;
+      /** No open window has this workspace, so every window shows it (someone has to be able to answer). */
+      unclaimed?: boolean;
     }
   | { type: 'human.answered'; check_id: string; outcome: HumanOutcome; at: number };
 

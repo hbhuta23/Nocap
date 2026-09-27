@@ -45,7 +45,7 @@ export async function holdForHuman(input: Omit<Pending, 'resolve' | 'timer'>): P
       bus.emit({ type: 'human.answered', check_id: input.check_id, outcome: 'timeout', at: Date.now() });
       resolve({ ...input.response, verdict: 'block', reason_for_agent: "Blocked by Nocap: the developer didn't confirm." });
     }, HUMAN_CHECK_TIMEOUT_MS);
-    const event: HumanNeeded = { type: 'human.needed', check_id: input.check_id, agent: input.request.agent, command: input.request.command, task: input.task, category: input.category, at: Date.now() };
+    const event: HumanNeeded = { type: 'human.needed', check_id: input.check_id, agent: input.request.agent, command: input.request.command, task: input.task, category: input.category, at: Date.now(), cwd: input.request.cwd, unclaimed: !bus.claimed(input.request.cwd) };
     pending.set(input.check_id, { ...input, resolve, timer, event });
     bus.emit(event);
   });
@@ -53,7 +53,7 @@ export async function holdForHuman(input: Omit<Pending, 'resolve' | 'timer'>): P
 
 /** Pop-ups still waiting for an answer, replayed to a window that connects late (VS Code reopened, reloaded). */
 export function pendingHumanChecks(): HumanNeeded[] {
-  return [...pending.values()].map((p) => p.event);
+  return [...pending.values()].map((p) => ({ ...p.event, unclaimed: !bus.claimed(p.request.cwd) }));
 }
 
 export async function submitHumanIntent(body: HumanIntentRequest): Promise<HumanIntentResponse> {

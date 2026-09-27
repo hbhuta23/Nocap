@@ -10,6 +10,7 @@ import { notifyOnBlock } from './notifications';
 import { PanelProvider } from './panel/PanelProvider';
 import { daemon } from './daemonClient';
 import { manageRules, promptAddRule, readRules } from './rules';
+import { panelSession } from './workspace';
 import { getApiKey, promptForApiKey, sendKeyToDaemon, welcome } from './onboarding';
 
 const noFolder = () => vscode.window.showErrorMessage('Nocap: open a folder first.');
@@ -53,8 +54,8 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('nocap.setTask', async (providedTask?: string) => {
       const task = providedTask ?? await vscode.window.showInputBox({ prompt: 'What are you asking the agent to do?' });
-      // TODO: shims use session "term-<pid>"; decide how panel tasks map to terminal sessions.
-      if (task) await daemon.post('/v1/task', { session_id: 'panel', task, source: 'panel' });
+      // Applies to agents working in this workspace only (their own prompt still wins for hook-based agents).
+      if (task) await daemon.post('/v1/task', { session_id: panelSession(), task, source: 'panel', workspace: workspaceRoot });
     }),
     vscode.commands.registerCommand('nocap.openPanel', () => vscode.commands.executeCommand('workbench.view.extension.nocap')),
     vscode.commands.registerCommand('nocap.addRule', () => (workspaceRoot ? promptAddRule(workspaceRoot) : noFolder())),

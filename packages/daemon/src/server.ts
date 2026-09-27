@@ -43,7 +43,7 @@ export async function startServer(port = DAEMON_PORT) {
   app.get('/v1/recent', async () => bus.recent());
 
   app.post<{ Body: TaskRequest }>('/v1/task', async (req) => {
-    sessions.setTask(req.body.session_id, req.body.task, req.body.source);
+    sessions.setTask(req.body.session_id, req.body.task, req.body.source, req.body.workspace);
     return { ok: true };
   });
 
@@ -61,8 +61,9 @@ export async function startServer(port = DAEMON_PORT) {
   // Checks a key with its provider before the extension saves it.
   app.post<{ Body: { api_key?: string } }>('/v1/key/check', async (req) => checkKey(req.body?.api_key?.trim() ?? ''));
 
-  app.get('/v1/stream', { websocket: true }, (socket) => {
-    const off = bus.subscribe((event) => socket.send(JSON.stringify(event)));
+  // `?roots=` (JSON array): the window's workspace folders, so pop-ups reach the window for that workspace.
+  app.get<{ Querystring: { roots?: string } }>('/v1/stream', { websocket: true }, (socket, req) => {
+    const off = bus.subscribe((event) => socket.send(JSON.stringify(event)), parseRoots(req.query.roots));
     socket.on('close', off);
     // A window that connects late still gets the pop-ups that are waiting (the extension ignores ones it already shows).
     for (const event of pendingHumanChecks()) socket.send(JSON.stringify(event));
@@ -79,6 +80,15 @@ export async function startServer(port = DAEMON_PORT) {
   await app.listen({ host: DAEMON_HOST, port });
   console.log(`Nocap daemon listening on http://${DAEMON_HOST}:${port}`);
   return app;
+}
+
+function parseRoots(raw: string | undefined): string[] {
+  try {
+    const roots = JSON.parse(raw ?? '[]');
+    return Array.isArray(roots) ? roots.filter((r): r is string => typeof r === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
 if (require.main === module) {

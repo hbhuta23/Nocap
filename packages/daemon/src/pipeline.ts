@@ -36,7 +36,9 @@ export async function runCheck(req: CheckRequest): Promise<VerdictResponse> {
 
   const classified = classify(req);
   const config = loadConfig(req.cwd);
-  const task = sessions.getTask(req.session_id) ?? sessions.getTaskForWorkspace(req.cwd) ?? sessions.getTask('panel');
+  // The agent's own prompt, else the latest task given in this workspace (another agent's prompt or the panel).
+  // A task typed in one project's panel never applies to another project.
+  const task = sessions.getTask(req.session_id) ?? sessions.getTaskForWorkspace(req.cwd);
   const rules = config.rules ?? [];
   noteEdit(req, config.tests?.globs); // FR-T4: remember which source files this session changed
   let response: VerdictResponse = { check_id, verdict: 'allow', category: classified, headline: 'Allowed', facts: [], layers: { task_fit: { ok: true, why: 'Safe command; no deep check needed.' }, intent_effect: { ok: true, why: 'No risky effect detected.' } }, reason_for_agent: '', mode: 'rules_only', latency_ms: 0 };

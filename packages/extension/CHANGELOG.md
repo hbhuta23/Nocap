@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Each VS Code window shows only its own workspace: approvals, block alerts, panel history and stats
+- A task typed in the panel applies only to agents in that workspace
+- An agent working in a folder no window has open still gets its approval shown in every window
+
 ## 0.1.3
 
 - The approval card can be dragged by its header (double-click to re-centre) and reopens where you left it

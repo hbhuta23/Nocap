@@ -3,7 +3,9 @@
 // the rules file, and extension commands. Restyle from Role C's mockups by editing panel.css.
 import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
+import type { StreamEvent } from '@nocap/shared';
 import { daemon } from '../daemonClient';
+import { eventIsMine } from '../workspace';
 import { addRule, promptAddRule, readRules, removeRule } from '../rules';
 import type { StreamClient } from '../streamClient';
 
@@ -32,7 +34,7 @@ export class PanelProvider implements vscode.WebviewViewProvider {
               type: 'init',
               online: await daemon.healthy(),
               rules: root ? await readRules(root) : [],
-              recent: await daemon.get('/v1/recent').catch(() => null),
+              recent: mineOnly(await daemon.get<Recent>('/v1/recent').catch(() => null)),
             });
             break;
           case 'set-task':
@@ -123,4 +125,17 @@ export class PanelProvider implements vscode.WebviewViewProvider {
 </body>
 </html>`;
   }
+}
+
+type Recent = {
+  checks: Extract<StreamEvent, { type: 'check.finished' }>[];
+  tasks: Extract<StreamEvent, { type: 'task.updated' }>[];
+  human: Extract<StreamEvent, { type: 'human.answered' }>[];
+};
+
+/** History for this workspace only (the daemon keeps every window's). Checks first, so pop-up outcomes can be matched. */
+function mineOnly(recent: Recent | null): Recent | null {
+  if (!recent) return null;
+  const checks = recent.checks.filter(eventIsMine);
+  return { checks, tasks: recent.tasks.filter(eventIsMine), human: recent.human.filter(eventIsMine) };
 }
