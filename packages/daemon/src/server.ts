@@ -4,7 +4,7 @@
 import Fastify from 'fastify';
 import formbody from '@fastify/formbody';
 import websocket from '@fastify/websocket';
-import { DAEMON_HOST, DAEMON_PORT, loadEnv } from '@nocap/shared';
+import { BUILD_ID, DAEMON_HOST, DAEMON_PORT, loadEnv } from '@nocap/shared';
 import type { CheckRequest, HealthResponse, HumanIntentRequest, TaskRequest } from '@nocap/shared';
 import { bus } from './bus';
 import { runCheck } from './pipeline';
@@ -28,7 +28,13 @@ export async function startServer(port = DAEMON_PORT) {
   await app.register(formbody);
   await app.register(websocket);
 
-  app.get('/v1/health', async (): Promise<HealthResponse> => ({ ok: true, version: '0.0.1' }));
+  app.get('/v1/health', async (): Promise<HealthResponse> => ({ ok: true, version: '0.1.0', build: BUILD_ID }));
+
+  // Lets a newer extension build replace a daemon left over from an older one (localhost only).
+  app.post('/v1/shutdown', async () => {
+    setTimeout(() => process.exit(0), 50);
+    return { ok: true };
+  });
 
   app.post<{ Body: CheckRequest }>('/v1/check', async (req) => runCheck(req.body));
 

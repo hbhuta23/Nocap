@@ -5,7 +5,7 @@ import { StatusBar } from './statusBar';
 import { StreamClient } from './streamClient';
 import { enableShims, disableShims } from './pathInjection';
 import { installHooks, uninstallHooks, hooksInstalled } from './hookInstaller';
-import { enqueueHumanIntent, onHumanAnswered } from './human/intentPrompt';
+import { enqueueHumanIntent, initHumanIntent, onHumanAnswered } from './human/intentPrompt';
 import { notifyOnBlock } from './notifications';
 import { PanelProvider } from './panel/PanelProvider';
 import { daemon } from './daemonClient';
@@ -16,6 +16,7 @@ const noFolder = () => vscode.window.showErrorMessage('nocap: open a folder firs
 
 export async function activate(context: vscode.ExtensionContext) {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  initHumanIntent(context.extensionUri);
   const statusBar = new StatusBar();
   const daemonManager = new DaemonManager(context, statusBar, workspaceRoot);
   const stream = new StreamClient();

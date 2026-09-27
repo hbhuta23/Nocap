@@ -30,7 +30,7 @@ export function holdForHuman(input: Omit<Pending, 'resolve' | 'timer'>): Promise
       resolve({ ...input.response, verdict: 'block', reason_for_agent: "Blocked by nocap: the developer didn't confirm." });
     }, HUMAN_CHECK_TIMEOUT_MS);
     pending.set(input.check_id, { ...input, resolve, timer });
-    bus.emit({ type: 'human.needed', check_id: input.check_id, command: input.request.command, task: input.task, category: input.category, at: Date.now() });
+    bus.emit({ type: 'human.needed', check_id: input.check_id, agent: input.request.agent, command: input.request.command, task: input.task, category: input.category, at: Date.now() });
   });
 }
 
@@ -100,7 +100,8 @@ export async function submitHumanIntent(body: HumanIntentRequest): Promise<Human
 
 /** The number the developer must type to override (FR-H5): the first high-severity fact with a number. */
 function keyNumber(facts: VerdictResponse['facts']): string {
-  const withNumber = facts.filter((f) => f.label !== 'Team rule broken' && /\d/.test(f.value));
+  // Only a real, non-zero number makes sense to type ("Files affected: 0" used to ask for "0").
+  const withNumber = facts.filter((f) => f.label !== 'Team rule broken' && Number(f.value.replace(/,/g, '').match(/\d+/)?.[0] ?? 0) > 0);
   const fact = withNumber.find((f) => f.severity === 'high') ?? withNumber[0];
   // "48,213" → "48213", "$340.00" → "340"
   // No number to confirm (e.g. a broken team rule): type the word instead.

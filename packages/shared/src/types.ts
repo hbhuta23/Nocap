@@ -96,6 +96,8 @@ export interface HumanIntentResponse {
 export interface HealthResponse {
   ok: true;
   version: string;
+  /** Build id (see shared/build.ts); a different one means the daemon is from another build. */
+  build: string;
 }
 
 // ---------- WS /v1/stream events ----------
@@ -107,6 +109,8 @@ export type StreamEvent =
   | {
       type: 'human.needed';
       check_id: string;
+      /** Which agent is asking (for the pop-up's "Claude Code wants to run this"). */
+      agent?: AgentName;
       /** FR-H2: only the command and task, never the measured numbers. */
       command: string;
       task: string | null;

@@ -1,23 +1,29 @@
-// A10: the rubber-stamp guard pop-up (FR-H1..H5).
-// Native input box for now (fast to build, focus-safe). Swap in a webview for Role C's
-// mismatch design once the flow works end to end.
-//
-// Rules learned from the first live test:
-// - Pop-ups are queued and shown one at a time. VS Code shows only one input box, so a new one
-//   used to silently cancel the one being answered.
-// - Escape declines: we tell the daemon so the agent is released now, not after the 5-minute timeout.
-// - When a check ends elsewhere (timeout, answered), its pop-up closes or is skipped.
+// A10: the rubber-stamp guard pop-up (FR-H1..H5), as a centered card in the editor area
+// (VS Code has no floating windows; a focused webview panel is the closest thing to a modal).
+// UI: media/approval.{js,css}. Rules learned from live tests:
+// - one pop-up at a time, queued (overlapping pop-ups used to cancel each other)
+// - Decline, Escape and closing the tab all DECLINE: the daemon blocks the command at once and tells the agent
+// - when a check ends anywhere else (another window, the 5-minute timeout), its pop-up closes itself
 import * as vscode from 'vscode';
 import type { HumanIntentResponse, HumanOutcome, StreamEvent } from '@nocap/shared';
-import { refuseReflexAnswer } from '@nocap/shared';
 import { daemon } from '../daemonClient';
 
 type HumanNeeded = Extract<StreamEvent, { type: 'human.needed' }>;
 
+const AGENTS: Record<string, string> = {
+  'claude-code': 'Claude Code', codex: 'Codex', 'gemini-cli': 'Gemini CLI', antigravity: 'Antigravity',
+  'vscode-chat': 'VS Code chat', cursor: 'Cursor', unknown: 'An agent in the terminal',
+};
+
 const queue: HumanNeeded[] = [];
 const finished = new Set<string>();
-let current: { checkId: string; box: vscode.InputBox } | null = null;
+let current: { checkId: string; close: (message?: string) => void } | null = null;
 let draining = false;
+let extensionUri: vscode.Uri;
+
+export function initHumanIntent(uri: vscode.Uri) {
+  extensionUri = uri;
+}
 
 /** Called for every `human.needed` stream event. */
 export function enqueueHumanIntent(e: HumanNeeded) {
@@ -27,10 +33,10 @@ export function enqueueHumanIntent(e: HumanNeeded) {
 
 /** Called for every `human.answered` stream event. */
 export function onHumanAnswered(checkId: string, outcome: HumanOutcome) {
-  // Not final: after "mismatch" the developer types the confirm number; after "refused" they answer again.
+  // Not final: after "mismatch" the developer types the confirm word; after "refused" they answer again.
   if (outcome === 'mismatch' || outcome === 'refused') return;
   finished.add(checkId);
-  if (current?.checkId === checkId) current.box.hide();
+  if (current?.checkId === checkId) current.close(outcome === 'timeout' ? 'Timed out. The command was blocked.' : undefined);
 }
 
 async function drain() {
@@ -39,106 +45,109 @@ async function drain() {
   try {
     while (queue.length) {
       const e = queue.shift()!;
-      if (!finished.has(e.check_id)) await askHumanIntent(e);
+      if (!finished.has(e.check_id)) await ask(e);
     }
   } finally {
     draining = false;
   }
 }
 
-async function askHumanIntent(e: HumanNeeded) {
-  const title = `nocap: ${shorten(e.command)}`;
-  let message: string | undefined;
-
-  for (;;) {
-    const opened = Date.now();
-    const answer = await prompt(e.check_id, {
-      title,
-      // FR-H2: ask before revealing. Never show measured numbers here.
-      prompt: message ?? 'What do you expect this to do? (Escape = decline)',
-      validate: (v) => (v.length > 0 ? refuseReflexAnswer(v, Number.MAX_SAFE_INTEGER) : null),
-    });
-    if (answer === undefined) return decline(e.check_id);
-
-    const res = await daemon.post<HumanIntentResponse>('/v1/human-intent', {
-      check_id: e.check_id,
-      answer,
-      ms_since_open: Date.now() - opened,
-    });
-    if (!res.accepted) {
-      if (!isPending(e.check_id, res)) return;
-      message = res.message;
-      continue;
-    }
-    if (res.match || !res.mismatch) return;
-    return confirmMismatch(e, title, res.mismatch);
-  }
-}
-
-async function confirmMismatch(e: HumanNeeded, title: string, m: NonNullable<HumanIntentResponse['mismatch']>) {
-  let message =
-    m.confirm_number === 'override'
-      ? `CAP DETECTED: ${m.actual}. Type "override" to run it anyway, or press Escape to decline.`
-      : `CAP DETECTED. You expected: ${m.expected}. This actually: ${m.actual}. Type ${m.confirm_number} to run it anyway (Escape = decline).`;
-
-  for (;;) {
-    const opened = Date.now();
-    // FR-H5: GitHub-style "type the number to run anyway".
-    const typed = await prompt(e.check_id, { title, prompt: message });
-    if (typed === undefined) return decline(e.check_id);
-
-    const res = await daemon.post<HumanIntentResponse>('/v1/human-intent', {
-      check_id: e.check_id,
-      confirm: typed.trim(),
-      ms_since_open: Date.now() - opened,
-    });
-    if (res.accepted || !isPending(e.check_id, res)) return;
-    message = res.message ?? message;
-  }
-}
-
 async function decline(checkId: string) {
-  // Closed because the check already ended elsewhere: nothing to tell the daemon.
   if (finished.has(checkId)) return;
+  finished.add(checkId);
   await daemon.post('/v1/human-intent', { check_id: checkId, cancel: true, ms_since_open: 0 }).catch(() => {});
 }
 
-function isPending(checkId: string, res: HumanIntentResponse) {
-  const gone = /no longer pending/i.test(res.message ?? '');
-  if (gone) finished.add(checkId);
-  return !gone;
-}
+function ask(e: HumanNeeded): Promise<void> {
+  const panel = vscode.window.createWebviewPanel(
+    'nocap.approval',
+    'nocap: approve?',
+    { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
+    { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')] },
+  );
+  panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'logo.svg');
+  const webview = panel.webview;
+  const media = (f: string) => webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', f)).toString();
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  webview.html = `<!doctype html><html lang="en"><head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="${media('approval.css')}"></head>
+<body><main id="card" class="card"></main><script nonce="${nonce}" src="${media('approval.js')}"></script></body></html>`;
 
-/** An input box we can close from code (showInputBox can't be), so stale pop-ups disappear. */
-function prompt(
-  checkId: string,
-  opts: { title: string; prompt: string; validate?: (v: string) => string | null },
-): Promise<string | undefined> {
-  return new Promise((resolve) => {
-    const box = vscode.window.createInputBox();
-    box.title = opts.title;
-    box.prompt = opts.prompt;
-    box.ignoreFocusOut = true;
-    let done = false;
-    const finish = (value: string | undefined) => {
-      if (done) return;
-      done = true;
+  return new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = (after = 0) => {
+      if (settled) return;
+      settled = true;
       current = null;
-      box.dispose();
-      resolve(value);
+      setTimeout(() => {
+        panel.dispose();
+        resolve();
+      }, after);
     };
-    box.onDidChangeValue((v) => (box.validationMessage = opts.validate?.(v) ?? undefined));
-    box.onDidAccept(() => {
-      if (!box.value.trim() || opts.validate?.(box.value)) return;
-      finish(box.value);
-    });
-    box.onDidHide(() => finish(undefined));
-    current = { checkId, box };
-    box.show();
-  });
-}
+    current = {
+      checkId: e.check_id,
+      close: (message) => {
+        void webview.postMessage({ type: 'closed', message });
+        finish(message ? 1500 : 0);
+      },
+    };
 
-function shorten(command: string, max = 100) {
-  const oneLine = command.replace(/\s+/g, ' ').trim();
-  return oneLine.length > max ? oneLine.slice(0, max - 1) + '…' : oneLine;
+    const post = <T>(body: object) => daemon.post<T>('/v1/human-intent', { check_id: e.check_id, ...body });
+    const gone = (r: HumanIntentResponse) => /no longer pending/i.test(r.message ?? '');
+
+    webview.onDidReceiveMessage(async (m) => {
+      if (settled) return;
+      try {
+        if (m.type === 'ready') {
+          void webview.postMessage({
+            type: 'init',
+            command: e.command,
+            task: e.task,
+            category: e.category,
+            agent: AGENTS[e.agent ?? 'unknown'] ?? 'An agent',
+            logo: media('logo.svg'),
+          });
+        } else if (m.type === 'decline') {
+          await decline(e.check_id);
+          finish(900);
+        } else if (m.type === 'answer') {
+          const res = await post<HumanIntentResponse>({ answer: m.answer, ms_since_open: m.ms });
+          if (!res.accepted) {
+            if (gone(res)) return finish();
+            void webview.postMessage({ type: 'refused', message: res.message });
+          } else if (res.match || !res.mismatch) {
+            finished.add(e.check_id);
+            void webview.postMessage({ type: 'approved' });
+            finish(900);
+          } else {
+            void webview.postMessage({ type: 'mismatch', ...res.mismatch });
+          }
+        } else if (m.type === 'confirm') {
+          const res = await post<HumanIntentResponse>({ confirm: m.confirm, ms_since_open: m.ms });
+          if (res.accepted) {
+            finished.add(e.check_id);
+            void webview.postMessage({ type: 'approved' });
+            finish(900);
+          } else if (gone(res)) {
+            finish();
+          } else {
+            void webview.postMessage({ type: 'confirm-refused', message: res.message });
+          }
+        }
+      } catch {
+        void webview.postMessage({ type: 'closed', message: 'nocap is offline. The command was blocked.' });
+        finish(1500);
+      }
+    });
+
+    // Closing the tab counts as Decline, never as silent approval.
+    panel.onDidDispose(() => {
+      if (settled) return;
+      settled = true;
+      current = null;
+      void decline(e.check_id);
+      resolve();
+    });
+  });
 }

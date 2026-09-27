@@ -1,6 +1,7 @@
 // A7: start the bundled daemon on workspace open, restart on crash (max 3), stop on close.
 import * as vscode from 'vscode';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { BUILD_ID, type HealthResponse } from '@nocap/shared';
 import { daemon } from './daemonClient';
 import type { StatusBar } from './statusBar';
 
@@ -23,8 +24,18 @@ export class DaemonManager implements vscode.Disposable {
   /** `env` is added to the daemon's environment (the API key from SecretStorage). */
   async start(env: Record<string, string> = {}) {
     this.env = env;
-    // A daemon may already be running (`npm run dev:daemon` while developing, or another window).
-    if (!(await daemon.healthy())) this.spawn();
+    // A daemon may already be running: another window (reuse it), `npm run dev:daemon` (build "dev", reuse it),
+    // or one left over from an older build after an update or F5 (replace it, or old code keeps answering).
+    if (await daemon.healthy()) {
+      const health = await daemon.get<HealthResponse>('/v1/health').catch(() => null);
+      if (health && health.build !== BUILD_ID && health.build !== 'dev') {
+        await daemon.post('/v1/shutdown', {}).catch(() => undefined);
+        for (let i = 0; i < 20 && (await daemon.healthy()); i++) await new Promise((r) => setTimeout(r, 100));
+        this.spawn();
+      }
+    } else {
+      this.spawn();
+    }
     this.healthTimer = setInterval(async () => this.statusBar.set((await daemon.healthy()) ? 'on' : 'offline'), 2_000);
   }
 

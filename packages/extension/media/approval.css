@@ -1,0 +1,78 @@
+/* nocap approval pop-up: a centered card over a dimmed backdrop, colors from the user's theme and terminal palette. */
+:root {
+  color-scheme: light dark;
+  --fg: var(--vscode-foreground);
+  --muted: var(--vscode-descriptionForeground);
+  --bg: var(--vscode-editor-background);
+  --card: color-mix(in srgb, var(--fg) 5%, var(--bg));
+  --line: color-mix(in srgb, var(--fg) 12%, transparent);
+  --danger: var(--vscode-terminal-ansiRed, var(--vscode-errorForeground));
+  --ok: var(--vscode-terminal-ansiGreen, var(--vscode-testing-iconPassed));
+  --accent: var(--vscode-terminal-ansiBlue, var(--vscode-textLink-foreground));
+  --term-bg: var(--vscode-terminal-background, var(--vscode-editor-background));
+  --term-fg: var(--vscode-terminal-foreground, var(--vscode-editor-foreground));
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  font-family: var(--vscode-font-family); font-size: 13px; color: var(--fg);
+  background: color-mix(in srgb, #000 28%, var(--bg));
+}
+.card {
+  width: min(560px, 100%); border-radius: 16px; padding: 22px 22px 18px; position: relative; overflow: hidden;
+  background: var(--card); border: 1px solid var(--line);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .55), 0 0 0 1px color-mix(in srgb, var(--fg) 4%, transparent);
+  animation: pop .16s ease-out;
+}
+.card::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--accent), transparent); }
+.card.cap::before { background: linear-gradient(90deg, var(--danger), transparent); }
+.card.cap { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.card.ok::before { background: linear-gradient(90deg, var(--ok), transparent); }
+@keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.985); } to { opacity: 1; transform: none; } }
+
+.head { display: flex; align-items: center; gap: 10px; }
+.head img { width: 28px; height: 28px; border-radius: 7px; }
+.head .title { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.head .sub { font-size: 12px; color: var(--muted); }
+.card.cap .title { color: var(--danger); letter-spacing: .04em; }
+
+.label { margin: 16px 0 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.command {
+  margin: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+  font-family: var(--vscode-editor-font-family); font-size: 12.5px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap;
+  background: var(--term-bg); color: var(--term-fg);
+}
+.task { line-height: 1.45; }
+.question { margin: 18px 0 8px; font-size: 14px; font-weight: 650; }
+.compare { display: grid; gap: 8px; margin-top: 14px; }
+.compare div { padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--fg) 6%, var(--bg)); line-height: 1.45; }
+.compare div.actual { background: color-mix(in srgb, var(--danger) 10%, var(--bg)); }
+.compare b { display: block; font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+
+textarea, input {
+  width: 100%; font: inherit; color: var(--vscode-input-foreground); background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--line)); border-radius: 10px; padding: 10px 12px; resize: none;
+}
+textarea { min-height: 74px; line-height: 1.45; }
+textarea:focus, input:focus { outline: none; border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 3px color-mix(in srgb, var(--vscode-focusBorder) 22%, transparent); }
+.error { min-height: 18px; margin-top: 6px; font-size: 12px; color: var(--danger); }
+
+.actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; }
+.hint { font-size: 11.5px; color: var(--muted); }
+.buttons { display: flex; gap: 8px; }
+button { font: inherit; font-weight: 600; border: 0; border-radius: 9px; padding: 8px 16px; cursor: pointer; position: relative; overflow: hidden; white-space: nowrap; }
+button.secondary { color: var(--fg); background: color-mix(in srgb, var(--fg) 10%, var(--bg)); }
+button.secondary:hover { background: color-mix(in srgb, var(--fg) 15%, var(--bg)); }
+button.primary { color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+button.primary:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
+button.danger { color: #fff; background: var(--danger); }
+button:disabled { opacity: .55; cursor: default; }
+/* the 2-second "read it first" bar (FR-H3) */
+button .fill { position: absolute; inset: auto 0 0 0; height: 2px; background: currentColor; opacity: .7; transform-origin: left; animation: fill 2s linear forwards; }
+@keyframes fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+kbd { font-family: inherit; font-size: 10.5px; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); margin-left: 6px; opacity: .8; }
+.state { text-align: center; padding: 16px 0 4px; font-weight: 650; }
+.spinner { width: 18px; height: 18px; margin: 0 auto 10px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; } }

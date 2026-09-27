@@ -1,14 +1,16 @@
 // Bundles the extension AND the daemon into dist/, and copies shims + hooks next to them,
 // so the .vsix is self-contained (A6).
 import * as esbuild from 'esbuild';
-import { cpSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const watch = process.argv.includes('--watch');
 
-const common = { bundle: true, platform: 'node', format: 'cjs', target: 'node20', sourcemap: true, logLevel: 'info' };
+// Same build id in the extension and the daemon, so the extension can tell a stale daemon (older build) apart.
+const BUILD_ID = `${JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version}+${Date.now().toString(36)}`;
+const common = { bundle: true, platform: 'node', format: 'cjs', target: 'node20', sourcemap: true, logLevel: 'info', define: { __NOCAP_BUILD__: JSON.stringify(BUILD_ID) } };
 
 const contexts = await Promise.all([
   esbuild.context({ ...common, entryPoints: [join(root, 'src/extension.ts')], outfile: join(root, 'dist/extension.js'), external: ['vscode'] }),
