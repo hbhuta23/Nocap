@@ -1,4 +1,4 @@
-<p align="center"><img src="https://raw.githubusercontent.com/hbhuta23/Polygraph/main/packages/extension/media/icon.png" width="96" alt="nocap logo"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/hbhuta23/Nocap/main/packages/extension/media/icon.png" width="96" alt="nocap logo"></p>
 
 # nocap: Stop AI agents from capping
 
