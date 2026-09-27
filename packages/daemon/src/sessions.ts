@@ -9,6 +9,7 @@ import { appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TaskRequest } from '@nocap/shared';
 import { bus } from './bus';
+import { logDir } from './logs';
 
 interface SessionTask {
   task: string;
@@ -79,12 +80,12 @@ export const sessions = {
       // First prompt of the session is the task, even if short.
       sessionTasks.set(sessionId, { task: text, earlier: null, followUps: [] });
     }
-    publish(sessionId, source);
+    publish(sessionId, source, workspace);
   },
 };
 
-function publish(sessionId: string, source: TaskRequest['source']) {
+function publish(sessionId: string, source: TaskRequest['source'], workspace?: string) {
   const task = sessions.getTask(sessionId) ?? '';
   bus.emit({ type: 'task.updated', session_id: sessionId, task, source, at: Date.now() });
-  void appendFile(join(process.cwd(), '.nocap.sessions.jsonl'), `${JSON.stringify({ session_id: sessionId, task, source, updated_at: Date.now() })}\n`, 'utf8').catch(() => undefined);
+  void appendFile(join(logDir(workspace ?? process.cwd()), 'sessions.jsonl'), `${JSON.stringify({ session_id: sessionId, task, source, updated_at: Date.now() })}\n`, 'utf8').catch(() => undefined);
 }

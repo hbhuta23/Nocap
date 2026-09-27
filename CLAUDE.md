@@ -182,7 +182,7 @@ Plain-English rules in `.nocap.yml` (`rules:` list), committed with the repo so 
   verify), test-diff facts (B11, `measurers/testDiff.ts`), demo repo (B22, `demo/shop-app`), the panel (B17–B20:
   `extension/media/panel.{js,css}` + `panel/PanelProvider.ts`, history via `GET /v1/recent`; restyle in panel.css),
   Cursor adapter (`.cursor/hooks.json`). All three demo scenarios run on real measurements.
-- Role B (Anvit) owns: MongoDB audit log + moving `.nocap.*.jsonl` out of the user's repo (B15).
+- Logs (B15): local only, in `~/.nocap/logs/<project>-<id>/{audit,sessions}.jsonl` (`daemon/src/logs.ts`, override with NOCAP_HOME); nothing is written into the user's repo. MongoDB is an optional extra (a team's own Atlas URI, off by default), not needed to publish.
   Anvit's regex `data` measurer now only handles `rm` and non-psql SQL.
 - Role A (2026-09-26): judge + prompts for data, spend (incl. FR-S1 extractor), test-cheat and human answers;
   eval 30/30 + extractor 3/3; redaction of `.nocap.yml` redact_columns on every judge call (FR-G7, unit-tested);
